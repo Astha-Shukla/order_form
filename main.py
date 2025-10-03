@@ -326,7 +326,7 @@ class OrderForm(QWidget):
         right_layout = QVBoxLayout(right_frame)
         build_option = self._build_options_panel()   # 👈 अब parent नको
         right_layout.addWidget(build_option)
-        right_frame.setFixedWidth(700)   # 👈 इथे width adjust करा
+        #right_frame.setFixedWidth(700)   # 👈 इथे width adjust करा
         # right_frame.setStyleSheet("background:white; border:1px solid #ddd;")
 
         main_layout.addWidget(left_frame)
@@ -451,6 +451,18 @@ class OrderForm(QWidget):
 
 
         layout.addWidget(sec_button,0,2)
+
+         # Column 0 (Printing Options): Stretch 0 - Fixed size
+        layout.setColumnStretch(0, 0)
+        
+        # Column 1 (Collar Options): Stretch 0 - Fixed size
+        layout.setColumnStretch(1, 0)
+        
+        # Column 2 (Button Options): Stretch 0 - Takes space needed for buttons
+        layout.setColumnStretch(2, 0)
+        
+        # Column 3 (Empty Space): Stretch 1 - Absorbs ALL remaining space
+        layout.setColumnStretch(3, 1)
        
         # Status layout
         status_widget = QWidget()
@@ -482,10 +494,8 @@ class OrderForm(QWidget):
             lambda value: self.sub_combo.setVisible(value == "Running")
         )
 
-        layout.addWidget(status_widget)
-
         # Sub-options list
-        layout.addWidget(status_widget, 1, 1)
+        layout.addWidget(status_widget, 1, 1, 1, 2)
 
         # ===== Finally return parent =====
         return parent
