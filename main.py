@@ -348,6 +348,37 @@ class OrderForm(QWidget):
             border: 1px solid gray;
             padding: 3px;
         """
+
+    # ========== Printing Options ==========
+        sec_print = QGroupBox("Printing Options", parent)
+        grid_print = QGridLayout(sec_print)
+        sec_print.setMaximumWidth(350)
+        sec_print.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+
+        sec_print.setContentsMargins(30,0,20,0)
+        self.print_vars = {}
+        keys = ['front', 'back', 'patch', 'embroidery']
+
+        for idx, key in enumerate(keys):
+            cb = QCheckBox(key.upper())
+            price_edit = QLineEdit("0.0")
+            price_edit.setStyleSheet(INPUT_STYLE)
+            price_edit.setEnabled(False)
+
+            def toggle(state, entry=price_edit):
+                entry.setEnabled(state == Qt.Checked)
+                if state != Qt.Checked:
+                    entry.setText("0.0")
+
+            cb.stateChanged.connect(toggle)
+            self.print_vars[key] = (cb, price_edit)
+
+            grid_print.addWidget(cb, idx, 0)
+            grid_print.addWidget(QLabel("Price"), idx, 1)
+            grid_print.addWidget(price_edit, idx, 2)
+
+        layout.addWidget(sec_print, 0, 0)
+
    # ========== Collar Options ==========
         sec1 = QGroupBox("Collar Options (Choose One)", parent)
         grid1 = QGridLayout(sec1)
@@ -392,39 +423,8 @@ class OrderForm(QWidget):
         grid1.addWidget(QLabel("Price"), 2, 1)
         grid1.addWidget(self.collar_price_patti, 2, 2)
 
-        layout.addWidget(sec1, 0, 0)
-
-        # ========== Printing Options ==========
-        sec_print = QGroupBox("Printing Options", parent)
-        grid_print = QGridLayout(sec_print)
-        sec_print.setMaximumWidth(350)
-        sec_print.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-
-        sec_print.setContentsMargins(30,0,20,0)
-        self.print_vars = {}
-        keys = ['front', 'back', 'patch', 'embroidery']
-
-        for idx, key in enumerate(keys):
-            cb = QCheckBox(key.upper())
-            price_edit = QLineEdit("0.0")
-            price_edit.setStyleSheet(INPUT_STYLE)
-            price_edit.setEnabled(False)
-
-            def toggle(state, entry=price_edit):
-                entry.setEnabled(state == Qt.Checked)
-                if state != Qt.Checked:
-                    entry.setText("0.0")
-
-            cb.stateChanged.connect(toggle)
-            self.print_vars[key] = (cb, price_edit)
-
-            grid_print.addWidget(cb, idx, 0)
-            grid_print.addWidget(QLabel("Price"), idx, 1)
-            grid_print.addWidget(price_edit, idx, 2)
-
-        layout.addWidget(sec_print, 0, 1)
-
-       
+        layout.addWidget(sec1, 0, 1)
+ 
         # ========== Button and Style Options ==========
         sec_button = QGroupBox("Button Options (Optional)", parent)
         grid_button = QGridLayout(sec_button)
@@ -450,7 +450,7 @@ class OrderForm(QWidget):
         grid_button.addWidget(rb_vplus, 0, 3)
 
 
-        layout.addWidget(sec_button,1,0)
+        layout.addWidget(sec_button,0,2)
        
         # Status layout
         status_widget = QWidget()
@@ -588,14 +588,11 @@ class OrderForm(QWidget):
             layout.setContentsMargins(0, 0, 0, 0)
 
             lbl = QLabel(label_text)
-            if label_text == "Total price":
-                lbl.setFixedWidth(120)   # jitna chahiye utna rakho (120 / 150 / 200)
-            else:
-                lbl.setFixedWidth(60)
+            lbl.setFixedWidth(60)
 
             lbl.setStyleSheet("""
                 QLabel {
-                    border: 1px solid #c0c0c0;
+                    border: none;
                     border-radius: 0px;
                     padding: 3px 6px;
                     background-color: #f9f9f9;
@@ -621,13 +618,13 @@ class OrderForm(QWidget):
         # Cloth
         self.cloth_combo = QComboBox()
         self.cloth_combo.addItems(["Shirt", "Pant", "Kurta"])
-        add_field("Cloth:", self.cloth_combo, 120)
+        add_field("Cloth:", self.cloth_combo, 200)
         
 
         # Type
         self.type_combo = QComboBox()
         self.type_combo.addItems(["Cotton", "Silk", "Linen"])
-        add_field("Type:", self.type_combo, 120)
+        add_field("Type:", self.type_combo, 200)
 
         # Color
         self.color_combo = QLineEdit("red")
@@ -647,11 +644,6 @@ class OrderForm(QWidget):
         #  price.unit
         self.price_input=QLineEdit("200")
         add_field("Unit:", self.price_input, 60)
-        
-        self.total_input=QLabel()
-        # self.total_input.setMinimumWidth(150)
-        # self.total_input.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
-        add_field("Total price", self.total_input)
         
         # Add Row Button
         self.add_button = QPushButton("+Add")
@@ -693,7 +685,7 @@ class OrderForm(QWidget):
 
         # Align column widths exactly like inputs above
         self.items_container.setColumnWidth(0, 300)  # Cloth
-        self.items_container.setColumnWidth(1, 300)  # Type
+        self.items_container.setColumnWidth(1, 350)  # Type
         self.items_container.setColumnWidth(2, 200)  # Color
         self.items_container.setColumnWidth(3, 150)   # Size
         self.items_container.setColumnWidth(4, 150)   # Qty
@@ -798,7 +790,7 @@ class OrderForm(QWidget):
        
         self.remark_input = QLineEdit()
         self.remark_input.setPlaceholderText("Enter remark here...")
-        self.remark_input.setFixedWidth(300)
+        self.remark_input.setFixedWidth(500)
         self.remark_input.setStyleSheet("""
             QLineEdit {
                 border: 1px solid black;
