@@ -346,7 +346,7 @@ class OrderForm(QWidget):
 
         sec_print.setContentsMargins(30,0,20,0)
         self.print_vars = {}
-        keys = ['front', 'back', 'patch', 'embroidery']
+        keys = ['front', 'back', 'patch', 'embroidery', 'Dtf', 'Front sablimation', 'Back sablimation']
 
         for idx, key in enumerate(keys):
             cb = QCheckBox(key.upper())
