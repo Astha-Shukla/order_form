@@ -581,10 +581,11 @@ class OrderForm(QWidget):
         pen.setWidth(2)
 
         coords = {
-            "collar": [(w / 2 - 80, 0.06 * h), (w / 2, 0.06 * h), (w / 2, 0.12 * h)],
+            "collar": [(w / 2 - 80, 0.06 * h), (w / 2, 0.06 * h), (w / 2, 0.10 * h)],
             "left_sleeve": [(0.20 * w, 0.30 * h), (0.33 * w, 0.30 * h)],
             "right_sleeve": [(0.80 * w, 0.40 * h), (0.72 * w, 0.40 * h)],
-            "center_right": [(0.75 * w, 0.70 * h), (0.60 * w, 0.70 * h)], # Start point at 65% width, 70% height
+            "center_right": [(0.75 * w, 0.70 * h), (0.60 * w, 0.70 * h)], 
+            "bottom_right_label": [(0.85 * w, 0.85 * h)], 
         }
 
         entry_offsets = {
@@ -592,6 +593,7 @@ class OrderForm(QWidget):
             "left_sleeve": (-85, -20),
             "right_sleeve": (-20, -20),
             "center_right": (-40, -20),
+            "bottom_right_label": (-40, -20),
         }
         # Set Z-value for lines to be slightly above the image (Z=0)
         LINE_Z_VALUE = 5
@@ -611,7 +613,7 @@ class OrderForm(QWidget):
             # entry box
             if key not in self.entries:
                 entry = QLineEdit()
-                entry.setFixedWidth(80)
+                entry.setFixedWidth(100)
                 entry.setAlignment(Qt.AlignCenter)
                 proxy = QGraphicsProxyWidget()
                 proxy.setWidget(entry)
