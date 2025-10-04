@@ -283,7 +283,7 @@ class OrderForm(QWidget):
         lbl.setFixedWidth(170)
         self.cmb = QComboBox()
         self.cmb.addItems(["SELECT", "Preset 1", "Preset 2", "Preset 3"])
-        self.cmb.setFixedWidth(100)
+        self.cmb.setFixedWidth(200)
 
         btn_upload = QPushButton("+")
         btn_upload.setFixedWidth(80)
@@ -428,24 +428,20 @@ class OrderForm(QWidget):
         rb_plain = QRadioButton("PLAIN")
         # rb_plain.setChecked(True)
         rb_plain.toggled.connect(lambda: setattr(self, "style_var", "plain"))
-        grid_button.addWidget(rb_plain, 0, 1)
+        grid_button.addWidget(rb_plain, 1, 0)
 
         rb_box = QRadioButton("BOX")
         rb_box.toggled.connect(lambda: setattr(self, "style_var", "box"))
-        grid_button.addWidget(rb_box, 0, 2)
+        grid_button.addWidget(rb_box, 2, 0)
 
         rb_vplus = QRadioButton("V+")
         rb_vplus.toggled.connect(lambda: setattr(self, "style_var", "vplus"))
-        grid_button.addWidget(rb_vplus, 0, 3)
+        grid_button.addWidget(rb_vplus, 3, 0)
 
         layout.addWidget(sec_button,0,2)
-         # Column 0 (Printing Options): Stretch 0 - Fixed size
         layout.setColumnStretch(0, 0)
-        # Column 1 (Collar Options): Stretch 0 - Fixed size
         layout.setColumnStretch(1, 0)       
-        # Column 2 (Button Options): Stretch 0 - Takes space needed for buttons
         layout.setColumnStretch(2, 0)        
-        # Column 3 (Empty Space): Stretch 1 - Absorbs ALL remaining space
         layout.setColumnStretch(3, 1)
        
         # Status layout
