@@ -679,7 +679,7 @@ class OrderForm(QWidget):
             layout.setContentsMargins(0, 0, 0, 0)
 
             lbl = QLabel(label_text)
-            lbl.setFixedWidth(60)
+            lbl.setFixedWidth(65)
 
             lbl.setStyleSheet("""
                 QLabel {
@@ -706,16 +706,16 @@ class OrderForm(QWidget):
            
             all_layout.addLayout(layout)
       
-        # Cloth
+        # Fabric
         self.cloth_combo = QComboBox()
         self.cloth_combo.addItems(["Shirt", "Pant", "Kurta"])
-        add_field("Cloth:", self.cloth_combo, 200)
+        add_field("Fabric:", self.cloth_combo, 195)
         
 
         # Type
         self.type_combo = QComboBox()
         self.type_combo.addItems(["Cotton", "Silk", "Linen"])
-        add_field("Type:", self.type_combo, 200)
+        add_field("Type:", self.type_combo, 195)
 
         # Color
         self.color_combo = QLineEdit("red")
@@ -769,7 +769,7 @@ class OrderForm(QWidget):
         """)
         
         self.items_container.setHorizontalHeaderLabels(
-            ["Cloth", "Type", "Color", "Size", "Qty", "Unit", "Total price"]
+            ["Fabric", "Type", "Color", "Size", "Qty", "Unit", "Total price"]
         )
         self.items_container.verticalHeader().setVisible(False)
         self.items_container.setFixedHeight(200)
