@@ -15,6 +15,8 @@ from PyQt5.QtCore import Qt, QDate
 from io import BytesIO
 from PIL import Image
 import os
+MEDIA_DIR = "media" 
+
 
 class OrderForm(QWidget):
     def __init__(self):
@@ -282,8 +284,23 @@ class OrderForm(QWidget):
         lbl.setStyleSheet("border: none;") 
         lbl.setFixedWidth(170)
         self.cmb = QComboBox()
-        self.cmb.addItems(["SELECT", "Preset 1", "Preset 2", "Preset 3"])
+        self.display_to_filename_map = {}
+        self.display_names = ["SELECT"] 
+        if os.path.isdir(MEDIA_DIR):
+            image_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.webp')
+            
+            for filename in os.listdir(MEDIA_DIR):
+                if filename.lower().endswith(image_extensions):
+                    name_without_ext = os.path.splitext(filename)[0]
+                    display_name = name_without_ext.upper()                    
+                    self.display_names.append(display_name)
+                    self.display_to_filename_map[display_name] = filename
+        
+        self.cmb.addItems(self.display_names)
+
         self.cmb.setFixedWidth(200)
+
+        self.cmb.currentTextChanged.connect(self._change_image_from_select)
 
         btn_upload = QPushButton("+")
         btn_upload.setFixedWidth(80)
@@ -306,10 +323,8 @@ class OrderForm(QWidget):
         left_frame.setLayout(left_layout)
         left_frame.setFixedWidth(550)
         left_frame.setStyleSheet("background:white; border:1px solid #ddd;")
-
-        
      
-                    # 🔹 RIGHT PANEL (Options)
+        # 🔹 RIGHT PANEL (Options)
        
         right_frame = QFrame()
         right_layout = QVBoxLayout(right_frame)
@@ -321,11 +336,42 @@ class OrderForm(QWidget):
         main_layout.addWidget(left_frame)
         # main_layout.addWidget(second_frame)
         main_layout.addWidget(right_frame)
+        default_file = "NEW REGULAR COLER.jpg"
+        default_image_path = os.path.join(MEDIA_DIR, default_file)
 
-        # Initial render placeholder
+        if os.path.exists(default_image_path):
+            self.image = QPixmap(default_image_path)
+            
+            # 💡 STEP 3: Set the ComboBox text to the display name of the default file
+            # Find the display name for the default file
+            default_display_name = os.path.splitext(default_file)[0].upper()
+            
+            # Set the ComboBox to the default image's name
+            index = self.cmb.findText(default_display_name)
+            if index != -1:
+                self.cmb.setCurrentIndex(index)
+                
+        else:
+            self.image = None
+            # Ensure 'SELECT' is shown if the default image couldn't be loaded
+            self.cmb.setCurrentText("SELECT")
         self._render_image()
 
         return container
+    
+    def _change_image_from_select(self, display_name):
+        if display_name == "SELECT" or not display_name:
+            return
+        filename = self.display_to_filename_map.get(display_name)
+        if filename:
+            image_path = os.path.join(MEDIA_DIR, filename)
+            
+            if os.path.exists(image_path):
+                new_image = QPixmap(image_path)
+                
+                if not new_image.isNull():
+                    self.image = new_image
+                    self._render_image()
 
     def _build_options_panel(self):
         parent = QWidget()
@@ -463,7 +509,6 @@ class OrderForm(QWidget):
         self.status_combo.addItem("Running")
         self.status_combo.addItem("Completed")
         self.status_combo.setFixedWidth(100)
-        # 💡 Increase status dropdown size
         font = self.status_combo.font()
         font.setPointSize(11)
         self.status_combo.setFont(font)
@@ -474,13 +519,11 @@ class OrderForm(QWidget):
         self.sub_combo.addItems(["Cutting", "Streching", "Printing"])
         self.sub_combo.setFixedWidth(200)
         self.sub_combo.setVisible(False)
-        # 💡 Increase sub-combo size
         font = self.sub_combo.font()
         font.setPointSize(11)
         self.sub_combo.setFont(font)
         status_layout.addWidget(self.sub_combo)
 
-        # 💡 ADD STRETCH: This will consume all extra space, pulling the label and combo close to the left side.
         status_layout.addStretch()
 
         # Connect main combo to show/hide sub-combo
@@ -540,7 +583,7 @@ class OrderForm(QWidget):
         coords = {
             "collar": [(w / 2 - 80, 0.06 * h), (w / 2, 0.06 * h), (w / 2, 0.12 * h)],
             "left_sleeve": [(0.20 * w, 0.30 * h), (0.33 * w, 0.30 * h)],
-            "right_sleeve": [(0.80 * w, 0.30 * h), (0.74 * w, 0.30 * h)],
+            "right_sleeve": [(0.80 * w, 0.40 * h), (0.72 * w, 0.40 * h)],
             "center_right": [(0.75 * w, 0.70 * h), (0.60 * w, 0.70 * h)], # Start point at 65% width, 70% height
         }
 
