@@ -279,6 +279,7 @@ class OrderForm(QWidget):
         top_bar = QHBoxLayout()
 
         lbl = QLabel("PRODUCT IMAGE :")
+        lbl.setStyleSheet("border: none;") 
         lbl.setFixedWidth(170)
         self.cmb = QComboBox()
         self.cmb.addItems(["SELECT", "Preset 1", "Preset 2", "Preset 3"])
@@ -454,7 +455,10 @@ class OrderForm(QWidget):
         status_layout.setSpacing(10) 
 
         status_label = QLabel("Status:")
-        status_label.setFixedWidth(50)
+        status_label.setMinimumWidth(50)
+        font = status_label.font()
+        font.setPointSize(11) 
+        status_label.setFont(font)
         status_layout.addWidget(status_label)
 
         # Main status combo
@@ -463,6 +467,10 @@ class OrderForm(QWidget):
         self.status_combo.addItem("Running")
         self.status_combo.addItem("Completed")
         self.status_combo.setFixedWidth(100)
+        # 💡 Increase status dropdown size
+        font = self.status_combo.font()
+        font.setPointSize(11)
+        self.status_combo.setFont(font)
         status_layout.addWidget(self.status_combo)
 
         # Sub-options combo (initially hidden)
@@ -470,7 +478,14 @@ class OrderForm(QWidget):
         self.sub_combo.addItems(["Cutting", "Streching", "Printing"])
         self.sub_combo.setFixedWidth(200)
         self.sub_combo.setVisible(False)
+        # 💡 Increase sub-combo size
+        font = self.sub_combo.font()
+        font.setPointSize(11)
+        self.sub_combo.setFont(font)
         status_layout.addWidget(self.sub_combo)
+
+        # 💡 ADD STRETCH: This will consume all extra space, pulling the label and combo close to the left side.
+        status_layout.addStretch()
 
         # Connect main combo to show/hide sub-combo
         self.status_combo.currentTextChanged.connect(
