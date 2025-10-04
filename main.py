@@ -12,18 +12,9 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap, QImage, QFont, QIcon, QPen, QColor
 from PyQt5.QtCore import Qt, QDate
-# import barcode
-# from barcode.writer import ImageWriter
 from io import BytesIO
 from PIL import Image
 import os
-
-# def load_stylesheet(file_path):
-#     """Loads a stylesheet from a file."""
-#     if os.path.exists(file_path):
-#         with open(file_path, "r") as f:
-#             return f.read()
-#     return ""
 
 class OrderForm(QWidget):
     def __init__(self):
@@ -70,9 +61,6 @@ class OrderForm(QWidget):
 
 # Then stretch at the very end
         self.main_layout.addStretch()
-
-
-
 
     def create_button(self, text, emoji, shortcut=None, size=(80, 80)):
         """ Helper to create styled buttons with emoji as icon (top) """
@@ -449,18 +437,13 @@ class OrderForm(QWidget):
         rb_vplus.toggled.connect(lambda: setattr(self, "style_var", "vplus"))
         grid_button.addWidget(rb_vplus, 0, 3)
 
-
         layout.addWidget(sec_button,0,2)
-
          # Column 0 (Printing Options): Stretch 0 - Fixed size
         layout.setColumnStretch(0, 0)
-        
         # Column 1 (Collar Options): Stretch 0 - Fixed size
-        layout.setColumnStretch(1, 0)
-        
+        layout.setColumnStretch(1, 0)       
         # Column 2 (Button Options): Stretch 0 - Takes space needed for buttons
-        layout.setColumnStretch(2, 0)
-        
+        layout.setColumnStretch(2, 0)        
         # Column 3 (Empty Space): Stretch 1 - Absorbs ALL remaining space
         layout.setColumnStretch(3, 1)
        
@@ -544,25 +527,32 @@ class OrderForm(QWidget):
         pen.setWidth(2)
 
         coords = {
-            "center": [(0.30 * w, 0.70 * h), (0.50 * w, 0.70 * h)],
             "collar": [(w / 2 - 80, 0.06 * h), (w / 2, 0.06 * h), (w / 2, 0.12 * h)],
             "left_sleeve": [(0.20 * w, 0.30 * h), (0.33 * w, 0.30 * h)],
             "right_sleeve": [(0.80 * w, 0.30 * h), (0.74 * w, 0.30 * h)],
+            "center_right": [(0.75 * w, 0.70 * h), (0.60 * w, 0.70 * h)], # Start point at 65% width, 70% height
         }
 
         entry_offsets = {
             "collar": (-80, -20),
             "left_sleeve": (-85, -20),
             "right_sleeve": (-20, -20),
-            "center": (-80, -20),
+            "center_right": (-40, -20),
         }
+        # Set Z-value for lines to be slightly above the image (Z=0)
+        LINE_Z_VALUE = 5
+        
+        # Set Z-value for entry boxes to be clearly above the lines
+        BOX_Z_VALUE = 10 
 
         for key, pts in coords.items():
             # draw lines
             for i in range(len(pts) - 1):
-                self.scene.addLine(
+                line = self.scene.addLine(
                     pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], pen
                 )
+                # 💡 Set line Z-value
+                line.setZValue(LINE_Z_VALUE)
 
             # entry box
             if key not in self.entries:
@@ -573,6 +563,8 @@ class OrderForm(QWidget):
                 proxy.setWidget(entry)
                 self.entries[key] = proxy
                 self.scene.addItem(proxy)
+            # 💡 Set proxy/box Z-value to ensure it's on top
+            self.entries[key].setZValue(BOX_Z_VALUE)
 
             frx, fry = pts[0]
             dx, dy = entry_offsets.get(key, (-40, -20))
