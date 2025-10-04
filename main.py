@@ -11,10 +11,11 @@ from PyQt5.QtWidgets import (
     QLineEdit, QComboBox, QCheckBox, QVBoxLayout, QHBoxLayout,QSpinBox,QTableWidget,QTableWidgetItem,QSizePolicy,QHeaderView,QInputDialog,QMessageBox,QListWidgetItem,QListWidget
 )
 from PyQt5.QtGui import QPixmap, QImage, QFont, QIcon, QPen, QColor
-from PyQt5.QtCore import Qt, QDate
+from PyQt5.QtCore import Qt, QDate, QPointF
 from io import BytesIO
 from PIL import Image
-import os
+import os, math
+
 MEDIA_DIR = "media" 
 
 
@@ -580,49 +581,81 @@ class OrderForm(QWidget):
         pen = QPen(QColor("#1e40af"))
         pen.setWidth(2)
 
-        coords = {
-            "collar": [(w / 2 - 80, 0.06 * h), (w / 2, 0.06 * h), (w / 2, 0.10 * h)],
-            "left_sleeve": [(0.20 * w, 0.30 * h), (0.33 * w, 0.30 * h)],
-            "right_sleeve": [(0.80 * w, 0.40 * h), (0.72 * w, 0.40 * h)],
-            "center_right": [(0.75 * w, 0.70 * h), (0.60 * w, 0.70 * h)], 
-            "bottom_right_label": [(0.85 * w, 0.85 * h)], 
-        }
+        def _draw_arrowhead(scene, pen, p1, p2):
+            """Draws a V-shaped arrowhead at point p2, coming from p1."""
+            ARROW_SIZE = 8
+            
+            # Calculate the angle of the line segment
+            dx = p2.x() - p1.x()
+            dy = p2.y() - p1.y()
+            angle = math.atan2(dy, dx)
+            
+            # Calculate the points for the arrowhead triangle
+            p3 = QPointF(p2.x() - ARROW_SIZE * math.cos(angle - math.pi / 6),
+                        p2.y() - ARROW_SIZE * math.sin(angle - math.pi / 6))
+            p4 = QPointF(p2.x() - ARROW_SIZE * math.cos(angle + math.pi / 6),
+                        p2.y() - ARROW_SIZE * math.sin(angle + math.pi / 6))
+            
+            # Create and draw the arrowhead lines
+            scene.addLine(p2.x(), p2.y(), p3.x(), p3.y(), pen).setZValue(5)
+            scene.addLine(p2.x(), p2.y(), p4.x(), p4.y(), pen).setZValue(5)
 
+        # Note: Using QPointF objects for better geometry handling
+        coords = {
+            "collar": [QPointF(w / 2 - 80, 0.06 * h), QPointF(w / 2, 0.06 * h)],
+            "left_sleeve": [QPointF(0.20 * w, 0.30 * h), QPointF(0.33 * w, 0.30 * h)],
+            "right_sleeve": [QPointF(0.80 * w, 0.40 * h), QPointF(0.72 * w, 0.40 * h)],
+            "center_right": [QPointF(0.75 * w, 0.70 * h), QPointF(0.60 * w, 0.70 * h)],
+            "bottom_right_label": [QPointF(0.85 * w, 0.85 * h)], 
+        }
+        
         entry_offsets = {
             "collar": (-80, -20),
-            "left_sleeve": (-85, -20),
-            "right_sleeve": (-20, -20),
+            "left_sleeve": (-85, -20), # Adjusted for potentially wider box
+            "right_sleeve": (-20, -20),  # Adjusted for potentially wider box
             "center_right": (-40, -20),
-            "bottom_right_label": (-40, -20),
+            "bottom_right_label": (-40, -20), # Adjusted for wider box and far-right position
         }
-        # Set Z-value for lines to be slightly above the image (Z=0)
-        LINE_Z_VALUE = 5
         
-        # Set Z-value for entry boxes to be clearly above the lines
+        LINE_Z_VALUE = 5
         BOX_Z_VALUE = 10 
 
         for key, pts in coords.items():
-            # draw lines
-            for i in range(len(pts) - 1):
-                line = self.scene.addLine(
-                    pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], pen
-                )
-                # 💡 Set line Z-value
-                line.setZValue(LINE_Z_VALUE)
+            if key != "bottom_right_label":
+                # 1. Draw lines and get the last line segment
+                last_segment_p1 = None
+                last_segment_p2 = None
+                
+                for i in range(len(pts) - 1):
+                    p1 = pts[i]
+                    p2 = pts[i + 1]
+                    
+                    line = self.scene.addLine(p1.x(), p1.y(), p2.x(), p2.y(), pen)
+                    line.setZValue(LINE_Z_VALUE)
+                    
+                    # Keep track of the last segment drawn
+                    last_segment_p1 = p1
+                    last_segment_p2 = p2
+                
+                # 2. Draw the arrowhead at the end of the last line segment
+                if last_segment_p1 and last_segment_p2:
+                    _draw_arrowhead(self.scene, pen, last_segment_p1, last_segment_p2)
 
-            # entry box
+
+            # 3. Create the entry box (no change needed here)
             if key not in self.entries:
                 entry = QLineEdit()
-                entry.setFixedWidth(100)
+                entry.setFixedWidth(120) # Example width increase
                 entry.setAlignment(Qt.AlignCenter)
                 proxy = QGraphicsProxyWidget()
                 proxy.setWidget(entry)
                 self.entries[key] = proxy
                 self.scene.addItem(proxy)
-            # 💡 Set proxy/box Z-value to ensure it's on top
+            
             self.entries[key].setZValue(BOX_Z_VALUE)
 
-            frx, fry = pts[0]
+            # 4. Set the position of the box
+            frx, fry = pts[0].x(), pts[0].y() # Get coordinates from QPointF
             dx, dy = entry_offsets.get(key, (-40, -20))
             self.entries[key].setPos(frx + dx, fry + dy)
 
