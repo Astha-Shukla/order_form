@@ -415,7 +415,7 @@ class OrderForm(QWidget):
         layout.addWidget(sec_print, 0, 0)
 
    # ========== Collar Options ==========
-        sec1 = QGroupBox("Collar Options (Choose One)", parent)
+        sec1 = QGroupBox("Collar Options", parent)
         grid1 = QGridLayout(sec1)
         sec1.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         sec1.setMinimumWidth(250)
@@ -461,7 +461,7 @@ class OrderForm(QWidget):
         layout.addWidget(sec1, 0, 1)
  
         # ========== Button and Style Options ==========
-        sec_button = QGroupBox("Button Options (Optional)", parent)
+        sec_button = QGroupBox("Button Options", parent)
         grid_button = QGridLayout(sec_button)
 
         self.style_var = "button"
