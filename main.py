@@ -907,7 +907,7 @@ class OrderForm(QWidget):
         
 
         self.save_btn = QPushButton("💾\n SAVE")
-        self.undo_btn=QPushButton("↩️\n UNDO")
+        self.undo_btn=QPushButton("↩️\n CANCEL")
         self.bill_btn = QPushButton("🧾\n GENERATE BILL")
         self.job_btn = QPushButton("⚒️\n JOB WORK")
         self.rib_btn = QPushButton("🧵\n RIB COLLAR")
