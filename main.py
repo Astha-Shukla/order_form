@@ -494,6 +494,14 @@ class OrderForm(QWidget):
         layout.setColumnStretch(3, 1)
        
         # Status layout
+        COMBO_BOX_STYLE = """
+            QComboBox {
+                /* Define a clean, solid border */
+                border: 1px solid #777; 
+                border-radius: 3px;
+            }
+        """
+
         status_widget = QWidget()
         status_layout = QHBoxLayout(status_widget)
         status_layout.setContentsMargins(2,2,2,2)
@@ -511,7 +519,8 @@ class OrderForm(QWidget):
         self.status_combo.addItem("Pending")
         self.status_combo.addItem("Running")
         self.status_combo.addItem("Completed")
-        self.status_combo.setFixedWidth(100)
+        self.status_combo.setFixedWidth(150)
+        self.status_combo.setStyleSheet(COMBO_BOX_STYLE) 
         font = self.status_combo.font()
         font.setPointSize(11)
         self.status_combo.setFont(font)
@@ -521,6 +530,7 @@ class OrderForm(QWidget):
         self.sub_combo = QComboBox()
         self.sub_combo.addItems(["Cutting", "Streching", "Printing"])
         self.sub_combo.setFixedWidth(200)
+        self.sub_combo.setStyleSheet(COMBO_BOX_STYLE) 
         self.sub_combo.setVisible(False)
         font = self.sub_combo.font()
         font.setPointSize(11)
