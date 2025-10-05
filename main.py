@@ -386,6 +386,7 @@ class OrderForm(QWidget):
         """
 
     # ========== Printing Options ==========
+        default_prices = {'front': '5', 'back': '7', 'patch': '5', 'embroidery': '15', 'Dtf': '0', 'Front sablimation': '60', 'Back sablimation': '60'}
         sec_print = QGroupBox("Printing Options", parent)
         grid_print = QGridLayout(sec_print)
         sec_print.setMaximumWidth(350)
@@ -396,8 +397,9 @@ class OrderForm(QWidget):
         keys = ['front', 'back', 'patch', 'embroidery', 'Dtf', 'Front sablimation', 'Back sablimation']
 
         for idx, key in enumerate(keys):
+            default_price = default_prices.get(key, "0.0")
             cb = QCheckBox(key.upper())
-            price_edit = QLineEdit("0.0")
+            price_edit = QLineEdit(default_price)
             price_edit.setStyleSheet(INPUT_STYLE)
             price_edit.setEnabled(False)
 
@@ -425,11 +427,11 @@ class OrderForm(QWidget):
 
 
         self.collar_var = "self"
-        self.collar_price_self = QLineEdit("0.0")
+        self.collar_price_self = QLineEdit("0")
         self.collar_price_self.setStyleSheet(INPUT_STYLE)
-        self.collar_price_rib = QLineEdit("0.0")
+        self.collar_price_rib = QLineEdit("10")
         self.collar_price_rib.setStyleSheet(INPUT_STYLE)
-        self.collar_price_patti = QLineEdit("0.0")
+        self.collar_price_patti = QLineEdit("10")
         self.collar_price_patti.setStyleSheet(INPUT_STYLE)
         self.collar_cloth = QComboBox()
         self.collar_cloth.addItems(["Cotton", "Polyester", "Blended", "Other"])
@@ -602,7 +604,7 @@ class OrderForm(QWidget):
 
         # Note: Using QPointF objects for better geometry handling
         coords = {
-            "collar": [QPointF(w / 2 - 80, 0.06 * h), QPointF(w / 2, 0.06 * h)],
+            "collar": [QPointF(w / 2 - 80, 0.08 * h), QPointF(w / 2, 0.08 * h)],
             "left_sleeve": [QPointF(0.20 * w, 0.30 * h), QPointF(0.33 * w, 0.30 * h)],
             "right_sleeve": [QPointF(0.80 * w, 0.40 * h), QPointF(0.72 * w, 0.40 * h)],
             "center_right": [QPointF(0.75 * w, 0.70 * h), QPointF(0.60 * w, 0.70 * h)],
