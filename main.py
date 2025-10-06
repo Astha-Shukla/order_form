@@ -556,6 +556,43 @@ class OrderForm(QWidget):
         if path:
             self.image = QPixmap(path)
             self._render_image()
+
+        # 3. Define the new filename for storage
+        # We use the original file's name but ensure it's saved in MEDIA_DIR
+        original_filename = os.path.basename(path)
+        
+        # Create a display name (e.g., "my_shirt.png" -> "MY_SHIRT")
+        name_without_ext = os.path.splitext(original_filename)[0]
+        display_name = name_without_ext.upper()
+        
+        # 4. Save the file permanently to MEDIA_DIR
+        destination_path = os.path.join(MEDIA_DIR, original_filename)
+        
+        # Only save if the file isn't already there (or overwrite it)
+        if not os.path.exists(destination_path) or path != destination_path:
+            # We use the QPixmap's save method for reliable saving
+            # NOTE: self.image is the QPixmap loaded from 'path'
+            success = self.image.save(destination_path)
+            
+            if success:
+                print(f"Image saved to: {destination_path}")
+            else:
+                print(f"Error: Could not save image to {destination_path}")
+                return # Exit if saving failed
+
+        # 5. Update the ComboBox and mapping dictionary
+        if display_name not in self.display_names:
+            # Update internal data structures
+            self.display_names.append(display_name)
+            self.display_to_filename_map[display_name] = original_filename
+            
+            # Update the ComboBox UI
+            self.cmb.addItem(display_name)
+            
+        # 6. Set the ComboBox to the new image's name
+        index = self.cmb.findText(display_name)
+        if index != -1:
+            self.cmb.setCurrentIndex(index)
    
     def _render_image(self):
         """Render centered scaled image into the canvas and reposition entries/arrows."""
