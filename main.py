@@ -455,12 +455,11 @@ class OrderForm(QWidget):
         grid1.addWidget(QLabel("Price"), 2, 1)
         grid1.addWidget(self.collar_price_patti, 2, 2)
 
-        other_patti = QCheckBox("Other Patti")
+        """other_patti = QCheckBox("Other Patti")
         other_patti.toggled.connect(lambda checked: setattr(self, "collar_var", "patti") if checked else None)
         grid1.addWidget(rb_patti, 2, 0)
         grid1.addWidget(QLabel("Price"), 2, 1)
-        grid1.addWidget(self.collar_price_patti, 2, 2)
-
+        grid1.addWidget(self.collar_price_patti, 2, 2)"""
         layout.addWidget(sec1, 0, 1)
  
         # ========== Button and Style Options ==========
@@ -820,9 +819,16 @@ class OrderForm(QWidget):
         row = self.items_container.rowCount()
         self.items_container.insertRow(row)
 
-        qty = int(self.qty_input.text())
-        unit = float(self.price_input.text())
-        total = qty * unit
+        try:
+            qty = int(self.qty_input.text())
+            unit = float(self.price_input.text())
+        except ValueError:
+            print("Error: Quantity or Unit Price must be valid numbers.")
+            self.items_container.removeRow(row)
+            return
+        printing_add_on_per_unit = self.get_total_printing_price()
+        collar_add_on_per_unit = self.get_selected_collar_price()
+        total = (unit + printing_add_on_per_unit + collar_add_on_per_unit) * qty
 
         # Cloth
         item = QTableWidgetItem(self.cloth_combo.currentText())
@@ -850,16 +856,81 @@ class OrderForm(QWidget):
         self.items_container.setItem(row, 4, item)
 
         # Unit
-        item = QTableWidgetItem(str(unit))
+        item = QTableWidgetItem(f"{unit:.2f}")
         item.setTextAlignment(Qt.AlignCenter)
         self.items_container.setItem(row, 5, item)
 
         # Total
-        item = QTableWidgetItem(str(total))
+        item = QTableWidgetItem(f"{total:.2f}")
         item.setTextAlignment(Qt.AlignCenter)
         self.items_container.setItem(row, 6, item)
+        item_print = QTableWidgetItem(f"{printing_add_on_per_unit:.2f}")
+        self.items_container.setItem(row, 7, item_print)       
+        item_collar = QTableWidgetItem(f"{collar_add_on_per_unit:.2f}")
+        self.items_container.setItem(row, 8, item_collar)
+        self.items_container.setColumnHidden(7, True)
+        self.items_container.setColumnHidden(8, True)
         self._update_grand_total()
 
+    def get_total_printing_price(self):
+        """Calculates the sum of prices for all selected printing options (per unit)."""
+        total_print_price = 0.0
+        for key, (checkbox, price_edit) in self.print_vars.items():
+            if checkbox.isChecked():
+                try:
+                    price = float(price_edit.text())
+                    total_print_price += price
+                except ValueError:
+                    print(f"Warning: Invalid price found for {key}.")
+                    continue
+        return total_print_price
+
+    def get_selected_collar_price(self):
+        """Returns the price of the currently selected collar option (per unit)."""
+        collar_type = self.collar_var  # 'self', 'rib', or 'patti'
+        collar_price = 0.0
+        try:
+            if collar_type == "self":
+                collar_price = float(self.collar_price_self.text())
+            elif collar_type == "rib":
+                collar_price = float(self.collar_price_rib.text())
+            elif collar_type == "patti":
+                collar_price = float(self.collar_price_patti.text())
+        except ValueError:
+            print(f"Warning: Invalid price found for {collar_type} collar.")
+            pass # Price remains 0.0 if conversion fails
+        return collar_price
+
+    def _calculate_item_total_price(self, unit_price, qty):        
+        # Add-on prices are per unit
+        printing_add_on_per_unit = self.get_total_printing_price()
+        collar_add_on_per_unit = self.get_selected_collar_price()       
+        add_on_total = (printing_add_on_per_unit + collar_add_on_per_unit) * qty
+        base_total = unit_price * qty
+        
+        return base_total + add_on_total
+    
+    def _recalculate_all_item_totals(self):
+        """Recalculates the Total Price for all rows in the table and updates the Grand Total."""
+        from PyQt5.QtWidgets import QTableWidgetItem
+        
+        for row in range(self.items_container.rowCount()):
+            unit_price_item = self.items_container.item(row, 5) 
+            qty_item = self.items_container.item(row, 4) 
+            if unit_price_item and qty_item:
+                try:
+                    unit_price = float(unit_price_item.text())
+                    qty = int(qty_item.text())
+                    new_total_price = self._calculate_item_total_price(unit_price, qty)
+                    total_price_item = self.items_container.item(row, 6)
+                    if not total_price_item:
+                        total_price_item = QTableWidgetItem()
+                        self.items_container.setItem(row, 6, total_price_item)
+                        total_price_item.setText(f"{new_total_price:.2f}") 
+                except ValueError:
+                    continue 
+        self._update_grand_total()
+        
     def _update_grand_total(self):
         total_sum = 0
         for row in range(self.items_container.rowCount()):
