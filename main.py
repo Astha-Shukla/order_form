@@ -397,7 +397,7 @@ class OrderForm(QWidget):
         keys = ['front', 'back', 'patch', 'embroidery', 'Dtf', 'Front sablimation', 'Back sablimation']
 
         for idx, key in enumerate(keys):
-            default_price = default_prices.get(key, "0.0")
+            default_price = default_prices.get(key, "0")
             cb = QCheckBox(key.upper())
             price_edit = QLineEdit(default_price)
             price_edit.setStyleSheet(INPUT_STYLE)
@@ -405,8 +405,8 @@ class OrderForm(QWidget):
 
             def toggle(state, entry=price_edit):
                 entry.setEnabled(state == Qt.Checked)
-                if state != Qt.Checked:
-                    entry.setText("0.0")
+                #if state != Qt.Checked:
+                #    entry.setText("0.0")
 
             cb.stateChanged.connect(toggle)
             self.print_vars[key] = (cb, price_edit)
