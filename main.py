@@ -1,24 +1,21 @@
-import sys, uuid, os
-from PyQt5.QtWidgets import (
-    QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, 
-    QHBoxLayout, QGroupBox, QRadioButton, QFileDialog, QDateEdit, QFormLayout, QToolButton,
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QDateEdit,
-    QComboBox, QTextEdit, QPushButton, QDoubleSpinBox,
-    QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton,
-    QComboBox, QFileDialog, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
-    QLineEdit, QGraphicsProxyWidget, QFrame,
-    QWidget, QGridLayout, QGroupBox, QRadioButton, QLabel,
-    QLineEdit, QComboBox, QCheckBox, QVBoxLayout, QHBoxLayout, QSpinBox, QTableWidget,
-    QTableWidgetItem, QSizePolicy, QHeaderView, QInputDialog, QMessageBox, QListWidgetItem,
-    QListWidget, QDialog, QScrollArea, QMenu
-)
-from PyQt5.QtGui import QPixmap, QImage, QFont, QIcon, QPen, QColor,QTextDocument
-from PyQt5.QtCore import Qt, QDate, QPointF, QUrl, QSize
+import sys
+import os
+import webbrowser
 from io import BytesIO
-from PIL import Image
-import math, webbrowser
-from PyQt5.QtPrintSupport import QPrintDialog, QPrintPreviewDialog, QPrinter
+import math
 
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QLabel, QLineEdit, QDialog, QPushButton, 
+    QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton,  QFileDialog,
+    QDateEdit, QToolButton, QComboBox, QDoubleSpinBox, QGraphicsView,
+    QGraphicsScene, QGraphicsPixmapItem, QGraphicsProxyWidget, QFrame, 
+    QToolBar, QGridLayout, QGroupBox, QCheckBox, QTableWidget, QTableWidgetItem,
+    QSizePolicy, QMessageBox, QListWidgetItem, QScrollArea, 
+    QListWidget, QMenu,
+)
+from PyQt5.QtPrintSupport import QPrintDialog, QPrintPreviewWidget, QPrinter, QPrintPreviewDialog
+from PyQt5.QtGui import QPixmap, QImage, QPainter, QPageSize, QPen, QColor, QTextDocument 
+from PyQt5.QtCore import Qt, QUrl, QSize, QSizeF, QDate, QPointF
 
 MEDIA_ROOT = os.path.join(os.getcwd(), 'media')  # The main folder
 TEMPLATE_DIR = os.path.join(MEDIA_ROOT, 'templates') # For blank shirt images (ComboBox source)
