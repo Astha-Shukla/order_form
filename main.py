@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QListWidget, QMenu,
 )
 from PyQt5.QtPrintSupport import QPrintDialog, QPrintPreviewWidget, QPrinter, QPrintPreviewDialog
-from PyQt5.QtGui import QPixmap, QImage, QPainter, QPageSize, QPen, QColor, QTextDocument 
+from PyQt5.QtGui import QPixmap, QImage, QPainter, QPageSize, QPen, QColor, QTextDocument, QCursor
 from PyQt5.QtCore import Qt, QUrl, QSize, QSizeF, QDate, QPointF
 
 MEDIA_ROOT = os.path.join(os.getcwd(), 'media')  # The main folder
@@ -1193,14 +1193,7 @@ class OrderForm(QWidget):
         self.search_window.show()
 
     def open_print_dialog(self):
-        """Gathers order data and opens the Print/Export dialog."""
-        # Placeholder: Gather all relevant data from the form fields
-        
-        # NOTE: You need a way to pass the actual item details/table data.
-        # For this example, we pass a simple string.
-        
-        order_details_string = "Example item: Shirt, Red, Size S, Qty 1" # Replace with real data logic
-        
+        order_details_string = "Example item: Shirt, Red, Size S, Qty 1" 
         dialog = PrintExportDialog(content_data=order_details_string, parent=self)
         dialog.exec_()
     
@@ -1224,31 +1217,11 @@ class PrintExportDialog(QDialog):
         print_layout.addWidget(self.preview_btn)
         main_layout.addLayout(print_layout)
 
-        # Export/Share Options
-        self.export_group_btn = QPushButton("🔽 Export Options")
-        self.share_group_btn = QPushButton("📱 Share via WhatsApp")
-        
-        main_layout.addWidget(self.export_group_btn)
-        main_layout.addWidget(self.share_group_btn)
-
         # Connect Signals
         self.direct_print_btn.clicked.connect(self.direct_print)
         self.preview_btn.clicked.connect(self.show_preview)
-        self.export_group_btn.clicked.connect(self.show_export_menu)
-        self.share_group_btn.clicked.connect(self.show_whatsapp_share_menu)
-
-        # --- Sub-dialogs/Menus (Implementation details below) ---
-        # NOTE: You will implement show_export_menu and show_whatsapp_share_menu 
-        # to open menus containing PDF, Excel, Image, etc.
-
-        # Inside the PrintExportDialog class:
-
+        
     def get_print_content(self):
-        """
-        Placeholder: Convert your order data (self.content_data) into HTML or plain text 
-        that QPrinter can render. This is the page content.
-        """
-        # Example content generation (replace this with your actual order formatting)
         html_content = f"""
         <html><body>
             <h1>Order Report</h1>
@@ -1262,16 +1235,13 @@ class PrintExportDialog(QDialog):
         return html_content
 
     def print_document(self, printer):
-        """Renders the HTML content onto the provided QPrinter object."""
         doc = QTextDocument()
         doc.setHtml(self.get_print_content())
         doc.print_(printer)
 
     def direct_print(self):
-        """Opens the standard print dialog and starts printing."""
         printer = QPrinter(QPrinter.HighResolution)
         dialog = QPrintDialog(printer, self)
-        
         if dialog.exec_() == QDialog.Accepted:
             self.print_document(printer)
 
@@ -1280,6 +1250,16 @@ class PrintExportDialog(QDialog):
         printer = QPrinter(QPrinter.HighResolution)
         preview = QPrintPreviewDialog(printer, self)
         preview.paintRequested.connect(self.print_document)
+
+        export_btn = QPushButton("🔽 Export Options")
+        export_btn.setToolTip("Export to PDF/CSV")
+        export_btn.clicked.connect(self.show_export_menu_from_preview)
+        preview.layout().addWidget(export_btn) 
+        share_btn = QPushButton("📱 Share via WhatsApp")
+        share_btn.setToolTip("Share Order as PDF via WhatsApp")
+        share_btn.clicked.connect(self.show_whatsapp_share_menu_from_preview)
+        preview.layout().addWidget(share_btn)
+
         preview.exec_()
 
     def save_to_pdf(self):
@@ -1295,7 +1275,7 @@ class PrintExportDialog(QDialog):
             QMessageBox.information(self, "Success", f"PDF saved to:\n{fileName}")
             return fileName # Return the path for sharing
 
-    def show_export_menu(self):
+    def show_export_menu_from_preview(self):
         """Shows a menu with different export options."""
         menu = QMenu(self)
         
@@ -1306,41 +1286,28 @@ class PrintExportDialog(QDialog):
         # 2. Simplified Text/CSV Export (for Excel)
         csv_action = menu.addAction("Export as CSV (for Excel)")
         csv_action.triggered.connect(self.save_to_csv)
-        
-        # 3. Image Export (Requires converting the document/content to an image)
-        # NOTE: This is complex. For simplicity, you can print-screen or use simple text formats.
-        
-        menu.exec_(self.export_group_btn.mapToGlobal(self.export_group_btn.rect().bottomLeft()))
+        menu.exec_(QCursor.pos())
 
     def save_to_csv(self):
-        """Saves simplified data as CSV, suitable for import into Excel."""
-        # NOTE: This only saves the raw data, not the formatted report.
         fileName, _ = QFileDialog.getSaveFileName(
             self, "Export Order Data as CSV", f"Order_{self.parent().order_number.text()}.csv", "CSV Files (*.csv)"
         )
         if fileName:
-            # Example: Replace with actual data serialization
             with open(fileName, 'w') as f:
                 f.write("OrderNo,PartyName\n")
                 f.write(f"{self.parent().order_number.text()},{self.parent().party_name.text()}\n")
             QMessageBox.information(self, "Success", f"CSV file saved to:\n{fileName}")
             return fileName
         
-    # Inside the PrintExportDialog class:
 
     def share_via_whatsapp(self, file_path=None):
-        """
-        Opens WhatsApp Web/Desktop with a pre-filled message.
-        Attaching files directly requires API access, so we link the user to the file.
-        """
         if file_path is None:
             QMessageBox.warning(self, "Error", "Please export the file first.")
             return
 
-        # Use a generic message and prompt the user to attach the file manually
-        message = f"Please find the Order Report (Order No: {self.parent().order_number.text()}) attached."
+        order_no = self.parent().order_number.text() if self.parent() else "N/A"
+        message = f"Please find the Order Report (Order No: {order_no}) attached."
         
-        # URL encoding is necessary
         encoded_message = QUrl.toPercentEncoding(message).data().decode()
         
         # Standard WhatsApp Web link (you may need to add a contact number)
@@ -1352,12 +1319,9 @@ class PrintExportDialog(QDialog):
         QMessageBox.information(self, "Manual Step Required", 
                                 f"Your browser has opened WhatsApp. Please manually attach the saved file:\n\n{file_path}")
 
-    def show_whatsapp_share_menu(self):
-        """Shows format options for sharing, saves the file, and then initiates the share."""
+    def show_whatsapp_share_menu_from_preview(self):
         menu = QMenu(self)
         
-        # You can expand this to include CSV or Image saving before sharing.
-        # For now, we prioritize PDF as the primary sharing format.
         pdf_action = menu.addAction("Share as PDF")
         
         def trigger_share_pdf():
@@ -1366,7 +1330,7 @@ class PrintExportDialog(QDialog):
                 self.share_via_whatsapp(pdf_path)
 
         pdf_action.triggered.connect(trigger_share_pdf)
-        menu.exec_(self.share_group_btn.mapToGlobal(self.share_group_btn.rect().bottomLeft()))
+        menu.exec_(QCursor.pos())
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
