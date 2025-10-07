@@ -8,7 +8,9 @@ from PyQt5.QtWidgets import (
     QComboBox, QFileDialog, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
     QLineEdit, QGraphicsProxyWidget, QFrame,
     QWidget, QGridLayout, QGroupBox, QRadioButton, QLabel,
-    QLineEdit, QComboBox, QCheckBox, QVBoxLayout, QHBoxLayout,QSpinBox,QTableWidget,QTableWidgetItem,QSizePolicy,QHeaderView,QInputDialog,QMessageBox,QListWidgetItem,QListWidget
+    QLineEdit, QComboBox, QCheckBox, QVBoxLayout, QHBoxLayout, QSpinBox, QTableWidget,
+    QTableWidgetItem, QSizePolicy, QHeaderView, QInputDialog, QMessageBox, QListWidgetItem,
+    QListWidget, QDialog, QScrollArea
 )
 from PyQt5.QtGui import QPixmap, QImage, QFont, QIcon, QPen, QColor
 from PyQt5.QtCore import Qt, QDate, QPointF
@@ -16,8 +18,56 @@ from io import BytesIO
 from PIL import Image
 import os, math
 
-MEDIA_DIR = "media" 
+MEDIA_ROOT = os.path.join(os.getcwd(), 'media')  # The main folder
+TEMPLATE_DIR = os.path.join(MEDIA_ROOT, 'templates') # For blank shirt images (ComboBox source)
+REFERENCE_DIR = os.path.join(MEDIA_ROOT, 'references') # For customer-uploaded photos (Gallery source) 
 
+class ImageGalleryWindow(QDialog):
+    def __init__(self, media_dir, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Uploaded Image Gallery")
+        self.media_dir = media_dir  # Store the path for load_images()
+        self.setGeometry(100, 100, 800, 600)
+        
+        main_layout = QVBoxLayout(self)
+        
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        main_layout.addWidget(scroll_area)
+        
+        self.gallery_widget = QWidget()
+        self.gallery_layout = QGridLayout(self.gallery_widget)
+        scroll_area.setWidget(self.gallery_widget)
+        
+        self.load_images()
+    
+    def load_images(self):
+        image_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.webp')
+        col_count = 4 
+        row, col = 0, 0
+
+        if not os.path.isdir(self.media_dir):
+            self.gallery_layout.addWidget(QLabel("Error: Reference directory not found."), 0, 0)
+            return
+
+        for filename in os.listdir(self.media_dir):
+            if filename.lower().endswith(image_extensions):
+                image_path = os.path.join(self.media_dir, filename)
+                
+                label = QLabel()
+                pixmap = QPixmap(image_path)
+                
+                if not pixmap.isNull():
+                    label.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                    label.setAlignment(Qt.AlignCenter)
+                    label.setToolTip(filename) # Show filename on hover
+                    
+                    self.gallery_layout.addWidget(label, row, col)
+                    
+                    col += 1
+                    if col >= col_count:
+                        col = 0
+                        row += 1
 
 class OrderForm(QWidget):
     def __init__(self):
@@ -134,8 +184,9 @@ class OrderForm(QWidget):
         self.tutor_btn = QPushButton("❔\n TUTOR")
         self.upload_btn=QPushButton("Upload")
         self.previous_btn=QPushButton("previous")
-   
-        # Common style
+        self.upload_btn.clicked.connect(self._upload_reference_image) 
+        self.previous_btn.clicked.connect(self._open_image_gallery) 
+       # Common style
         button_style = """
             background-color: #EEEEEE; 
             color: #fc83a0; 
@@ -271,6 +322,31 @@ class OrderForm(QWidget):
 
         return container
     
+    def _open_image_gallery(self):
+        
+        gallery = ImageGalleryWindow(media_dir=REFERENCE_DIR, parent=self)
+        gallery.exec_() 
+
+    def _upload_reference_image(self):
+        
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select Reference Image", "", "Images (*.png *.jpg *.jpeg *.bmp *.webp)"
+        )
+        
+        if path:
+            temp_pixmap = QPixmap(path)            
+            original_filename = os.path.basename(path)
+            destination_path = os.path.join(REFERENCE_DIR, original_filename)             
+            if temp_pixmap.isNull():
+                print("Error: Could not load the image.")
+                return
+
+            if temp_pixmap.save(destination_path):
+                print(f"Customer reference image saved to: {destination_path}")
+                
+            else:
+                print(f"Error: Could not save reference image to {destination_path}")
+                        
     def _product_and_image_panel(self):
         """Middle row: left = product image canvas, right = options card"""
         container = QWidget()
@@ -287,10 +363,10 @@ class OrderForm(QWidget):
         self.cmb = QComboBox()
         self.display_to_filename_map = {}
         self.display_names = ["SELECT"] 
-        if os.path.isdir(MEDIA_DIR):
+        if os.path.isdir(TEMPLATE_DIR):
             image_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.webp')
             
-            for filename in os.listdir(MEDIA_DIR):
+            for filename in os.listdir(TEMPLATE_DIR):
                 if filename.lower().endswith(image_extensions):
                     name_without_ext = os.path.splitext(filename)[0]
                     display_name = name_without_ext.upper()                    
@@ -338,23 +414,19 @@ class OrderForm(QWidget):
         # main_layout.addWidget(second_frame)
         main_layout.addWidget(right_frame)
         default_file = "NEW REGULAR COLER.jpg"
-        default_image_path = os.path.join(MEDIA_DIR, default_file)
+        default_image_path = os.path.join(TEMPLATE_DIR, default_file)
 
         if os.path.exists(default_image_path):
             self.image = QPixmap(default_image_path)
             
-            # 💡 STEP 3: Set the ComboBox text to the display name of the default file
-            # Find the display name for the default file
             default_display_name = os.path.splitext(default_file)[0].upper()
             
-            # Set the ComboBox to the default image's name
             index = self.cmb.findText(default_display_name)
             if index != -1:
                 self.cmb.setCurrentIndex(index)
                 
         else:
             self.image = None
-            # Ensure 'SELECT' is shown if the default image couldn't be loaded
             self.cmb.setCurrentText("SELECT")
         self._render_image()
 
@@ -365,7 +437,7 @@ class OrderForm(QWidget):
             return
         filename = self.display_to_filename_map.get(display_name)
         if filename:
-            image_path = os.path.join(MEDIA_DIR, filename)
+            image_path = os.path.join(TEMPLATE_DIR, filename)
             
             if os.path.exists(image_path):
                 new_image = QPixmap(image_path)
@@ -566,7 +638,7 @@ class OrderForm(QWidget):
         display_name = name_without_ext.upper()
         
         # 4. Save the file permanently to MEDIA_DIR
-        destination_path = os.path.join(MEDIA_DIR, original_filename)
+        destination_path = os.path.join(TEMPLATE_DIR, original_filename)
         
         # Only save if the file isn't already there (or overwrite it)
         if not os.path.exists(destination_path) or path != destination_path:
@@ -693,7 +765,7 @@ class OrderForm(QWidget):
             # 3. Create the entry box (no change needed here)
             if key not in self.entries:
                 entry = QLineEdit()
-                entry.setFixedWidth(120) # Example width increase
+                entry.setFixedWidth(120) 
                 entry.setAlignment(Qt.AlignCenter)
                 proxy = QGraphicsProxyWidget()
                 proxy.setWidget(entry)
@@ -1013,7 +1085,7 @@ class OrderForm(QWidget):
 
         remark_layout.addWidget(remark_label)
         remark_layout.addWidget(self.remark_input)
-        remark_layout.addStretch()  # push to left
+        remark_layout.addStretch()
 
         self.main_layout.addLayout(remark_layout)
         self.main_layout.addSpacing(10)
@@ -1021,9 +1093,8 @@ class OrderForm(QWidget):
     def create_buttons_row(self):
         buttons_layout = QHBoxLayout()
         buttons_layout.setContentsMargins(0, 0, 0, 0)
-        buttons_layout.setSpacing(1)   # 
+        buttons_layout.setSpacing(1)    
         
-
         self.save_btn = QPushButton("💾\n SAVE")
         self.undo_btn=QPushButton("↩️\n CANCEL")
         self.bill_btn = QPushButton("🧾\n GENERATE BILL")
@@ -1032,7 +1103,6 @@ class OrderForm(QWidget):
         self.cut_btn = QPushButton("✂️\n CUTTING")
         self.print_btn = QPushButton("🖨\n PRINTING")
         
-
         self.bill_btn.setFixedWidth(170)
         self.save_btn.setFixedWidth(140)
         self.undo_btn.setFixedWidth(140)
@@ -1054,7 +1124,6 @@ class OrderForm(QWidget):
             "padding:10px;")
             
             buttons_layout.addWidget(btn)
-        
         
             # har button ke baad space chahiye (last ke baad nahi)
             if i < len(buttons) - 1:
@@ -1119,8 +1188,7 @@ class OrderForm(QWidget):
 
         # Show new window
         self.search_window.show()
-
-    
+   
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
