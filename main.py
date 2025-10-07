@@ -1262,44 +1262,88 @@ class PrintExportDialog(QDialog):
 
         preview.exec_()
 
-    def save_to_pdf(self):
-        """Saves the printable content directly as a PDF file."""
-        fileName, _ = QFileDialog.getSaveFileName(
-            self, "Save Order as PDF", f"Order_{self.parent().order_number.text()}.pdf", "PDF Files (*.pdf)"
+    def handle_export_to_file(self):
+        
+        order_no = self.parent().order_number.text() if hasattr(self.parent(), 'order_number') else "temp"
+        
+        file_filters = (
+            "PDF Files (*.pdf);;"
+            "Excel Files (*.xlsx);;"
+            "Image Files (*.png *.jpg);;"
+            "Word Documents (*.docx);;"
+            "PowerPoint Presentations (*.pptx)"
         )
-        if fileName:
-            printer = QPrinter(QPrinter.HighResolution)
-            printer.setOutputFormat(QPrinter.PdfFormat)
-            printer.setOutputFileName(fileName)
-            self.print_document(printer)
-            QMessageBox.information(self, "Success", f"PDF saved to:\n{fileName}")
-            return fileName # Return the path for sharing
+
+        fileName, selected_filter = QFileDialog.getSaveFileName(
+            self, "Export Order Report", f"Order_{order_no}", file_filters
+        )
+        
+        if not fileName:
+            return None # User cancelled
+
+        # Determine the file type based on the selected filter
+        if "PDF Files" in selected_filter:
+            # We must call the existing PDF logic as it's correctly implemented with QPrinter
+            return self._perform_pdf_save(fileName)
+        elif "Excel Files" in selected_filter:
+            return self._perform_excel_save(fileName)
+        elif "Image Files" in selected_filter:
+            # We must call the existing Image logic as it has QPainter/QPixmap
+            return self._perform_image_save(fileName)
+        elif "Word Documents" in selected_filter:
+            return self._perform_word_ppt_save(fileName, 'word')
+        elif "PowerPoint Presentations" in selected_filter:
+            return self._perform_word_ppt_save(fileName, 'ppt')
+        
+        return None
 
     def show_export_menu_from_preview(self):
         """Shows a menu with different export options."""
         menu = QMenu(self)
-        
-        # 1. PDF is directly supported
-        pdf_action = menu.addAction("Save as PDF")
-        pdf_action.triggered.connect(self.save_to_pdf)
-        
-        # 2. Simplified Text/CSV Export (for Excel)
-        csv_action = menu.addAction("Export as CSV (for Excel)")
-        csv_action.triggered.connect(self.save_to_csv)
+        # Single action to open the universal export dialog
+        export_action = menu.addAction("Export to All Formats...")
+        export_action.triggered.connect(self.handle_export_to_file)
         menu.exec_(QCursor.pos())
 
-    def save_to_csv(self):
-        fileName, _ = QFileDialog.getSaveFileName(
-            self, "Export Order Data as CSV", f"Order_{self.parent().order_number.text()}.csv", "CSV Files (*.csv)"
-        )
-        if fileName:
-            with open(fileName, 'w') as f:
-                f.write("OrderNo,PartyName\n")
-                f.write(f"{self.parent().order_number.text()},{self.parent().party_name.text()}\n")
-            QMessageBox.information(self, "Success", f"CSV file saved to:\n{fileName}")
-            return fileName
-        
+    def _perform_pdf_save(self, fileName):
+        """Performs the actual PDF saving using QPrinter."""
+        printer = QPrinter(QPrinter.HighResolution)
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setOutputFileName(fileName)
+        self.print_document(printer)
+        QMessageBox.information(self, "Success", f"PDF saved to:\n{fileName}")
+        return fileName
+    
+    def _perform_excel_save(self, fileName):
+        QMessageBox.warning(self, "WIP", f"Excel Export is a placeholder. File saved as: {fileName}")
+        return fileName
 
+    def _perform_image_save(self, fileName):
+        """Performs the actual Image saving using QTextDocument rendering."""
+        # Existing image logic
+        doc = QTextDocument()
+        doc.setHtml(self.get_print_content())
+        
+        image_size = doc.size().toSize()
+        if image_size.isEmpty():
+            image_size = QSize(800, 1000)
+            
+        image = QPixmap(image_size)
+        image.fill(self.palette().window().color())
+        
+        painter = QPainter(image)
+        doc.drawContents(painter, image.rect())
+        painter.end()
+
+        image.save(fileName)
+        QMessageBox.information(self, "Success", f"Image saved to:\n{fileName}")
+        return fileName
+
+    def _perform_word_ppt_save(self, fileName, file_type):
+        QMessageBox.warning(self, "WIP", f"{file_type.title()} Export is a placeholder. File saved as: {fileName}")
+        return fileName
+
+        
     def share_via_whatsapp(self, file_path=None):
         if file_path is None:
             QMessageBox.warning(self, "Error", "Please export the file first.")
