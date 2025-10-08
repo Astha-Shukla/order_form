@@ -1192,9 +1192,43 @@ class OrderForm(QWidget):
         # Show new window
         self.search_window.show()
 
+    def _generate_item_table_html(self):
+        """Generates the HTML string for the item table from the QTableWidget."""
+        
+        table = self.items_container 
+        if table.rowCount() == 0:
+            return "<p>No items added to the order.</p>"
+        
+        html = '<table class="item-table">\n'
+        # 2. Add Header Row (Read headers directly from the table)
+        header_labels = []
+        # Loop over the table's horizontal header labels
+        for col in range(table.columnCount()):
+            header_item = table.horizontalHeaderItem(col)
+            if header_item is not None:
+                header_labels.append(header_item.text())
+            else:
+                header_labels.append(f"Col {col+1}")
+        
+        html += '<tr><th>Fabric</th><th>Type</th><th>Color</th><th>Size</th><th>Qty</th><th>Unit Price</th><th>Total Price</th></tr>\n'
+        
+        # 3. Add Data Rows (Iterate through the actual table data)
+        for row in range(table.rowCount()):
+            html += '<tr>'
+            for col in range(table.columnCount()):
+                item = table.item(row, col)
+                # Check if the cell item exists, otherwise use an empty string
+                text = item.text() if item is not None else ""
+                html += f'<td>{text}</td>'
+            html += '</tr>\n'
+        
+        html += '</table>'
+        return html
+
     def open_print_dialog(self):
-        order_details_string = "Example item: Shirt, Red, Size S, Qty 1" 
-        dialog = PrintExportDialog(content_data=order_details_string, parent=self)
+        item_table_html = self._generate_item_table_html()
+        
+        dialog = PrintExportDialog(content_data=item_table_html, parent=self)
         dialog.exec_()
     
    
@@ -1219,23 +1253,163 @@ class PrintExportDialog(QDialog):
         # Connect Signals
         self.direct_print_btn.clicked.connect(self.direct_print)
         self.preview_btn.clicked.connect(self.show_preview)
-        
-    def get_print_content(self):
-        order_no = self.parent().order_number.text() if hasattr(self.parent(), 'order_number') else "N/A"
-        party_name = self.parent().party_name.text() if hasattr(self.parent(), 'party_name') else "N/A"
 
+    def _get_parent_text(self, attribute_name, default="N/A"):
+        parent = self.parent()
+        if hasattr(parent, attribute_name) and getattr(parent, attribute_name) and hasattr(getattr(parent, attribute_name), 'text'):
+            return getattr(parent, attribute_name).text()
+        return default
+
+    def _get_parent_checkbox_state(self, attribute_name):
+        parent = self.parent()
+        if hasattr(parent, attribute_name) and getattr(parent, attribute_name) and hasattr(getattr(parent, attribute_name), 'isChecked'):
+            checkbox = getattr(parent, attribute_name)
+            if checkbox.isChecked():
+                price = self._get_parent_text(f'{attribute_name}_price', "0")
+                return f"✅ {checkbox.text()} (Price: {price})"
+        return None
+    
+    def _get_parent_printing_options(self):
+        parent = self.parent()
+        printing_options = []
+        
+        option_map = {
+            'front_checkbox': 'front_price',
+            'back_checkbox': 'back_price',
+            'patch_checkbox': 'patch_price',
+            'embroidery_checkbox': 'embroidery_price',
+            'dtf_checkbox': 'dtf_price',
+            'front_sublimation_checkbox': 'front_sublimation_price',
+            'back_sublimation_checkbox': 'back_sublimation_price',
+        }
+        
+        for attr, price_attr_suffix in option_map.items():
+            if hasattr(parent, attr) and getattr(parent, attr) and hasattr(getattr(parent, attr), 'isChecked'):
+                checkbox = getattr(parent, attr)
+                
+                price_field_name = f"{attr.replace('_checkbox', '')}_price"
+                price = self._get_parent_text(price_field_name, "0")
+                
+                if checkbox.isChecked():
+                    option_text = checkbox.text().strip()
+                    printing_options.append(f"<li>✅ {option_text} (Price: {price} INR)</li>")
+
+        return "".join(printing_options) or "<li>None Selected</li>"
+    
+    def get_print_content(self):
+
+        order_no = self._get_parent_text('order_number')
+        party_name = self._get_parent_text('party_name')
+        order_date = self._get_parent_text('order_date') 
+        delivery_date = self._get_parent_text('delivery_date')
+        gst_no = self._get_parent_text('gst_no') 
+        advance_paid = self._get_parent_text('advance_paid')
+        address = self._get_parent_text('address') 
+        raw_grand_total_text = self._get_parent_text('grand_total_label')
+        if ':' in raw_grand_total_text:
+            grand_total = raw_grand_total_text.split(':')[-1].strip()
+        else:
+            grand_total = "0.00" 
+        remarks = self._get_parent_text('remark_input') 
+        collar_options = [
+            self._get_parent_checkbox_state('self_collar_checkbox'),
+            self._get_parent_checkbox_state('rib_collar_checkbox'),
+            self._get_parent_checkbox_state('rib_patti_checkbox')
+        ]
+        collar_options_list = "".join(f"<li>{opt}</li>" for opt in collar_options if opt) or "<li>None Selected</li>"
+
+        button_options_list = f"<li>{self._get_parent_text('button_option')}</li>" # Assumes button_option holds the selected radio button text
+
+        printing_options_list = self._get_parent_printing_options()
+    
         html_content = f"""
-        <html><body>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: 'Arial', sans-serif; font-size: 10pt; }}
+                h1 {{ text-align: center; margin-bottom: 5px; color: #333; }}
+                hr {{ border: 0.5px solid #ccc; }}
+                .header-table {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; }}
+                .header-table td {{ padding: 3px 5px; vertical-align: top; }}
+                .section-header {{ background-color: #f0f0f0; padding: 5px; margin-top: 15px; margin-bottom: 5px; border-left: 5px solid #007bff; }}
+                .item-table-container {{ overflow-x: auto; }}
+                .item-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+                .item-table th, .item-table td {{ border: 1px solid #ddd; padding: 6px; text-align: left; }}
+                .item-table th {{ background-color: #e9ecef; }}
+                .summary {{ float: right; margin-top: 15px; padding: 10px; border: 2px solid #333; width: 40%; text-align: right; }}
+                .options-table td {{ font-size: 9pt; }}
+            </style>
+        </head>
+        <body>
             <h1>Order Report</h1>
-            <p>Order No: {self.parent().order_number.text()}</p>
-            <p>Party Name: {self.parent().party_name.text()}</p>
             <hr>
-            <h2>Item Details:</h2>
-            <p>{self.content_data}</p>
-        </body></html>
+
+            <table class="header-table">
+                <tr>
+                    <td width="50%"><b>Order No:</b> {order_no}</td>
+                    <td width="50%"><b>Order Date:</b> {order_date}</td>
+                </tr>
+                <tr>
+                    <td><b>Party Name:</b> {party_name}</td>
+                    <td><b>Delivery Date:</b> {delivery_date}</td>
+                </tr>
+                <tr>
+                    <td><b>Address:</b> {address}</td>
+                    <td><b>GST No:</b> {gst_no}</td>
+                </tr>
+            </table>
+
+            <h2 class="section-header">Item Details</h2>
+            
+            <div class="item-table-container">
+                {self.content_data}
+            </div>
+
+            <h2 class="section-header" style="clear: both;">Customization Options (Global Instructions)</h2>
+            <table class="header-table options-table">
+                <tr>
+                    <td width="33%" style="border-right: 1px solid #ddd;">
+                        <b>Collar Options:</b>
+                        <ul style="list-style-type: none; padding-left: 10px; margin: 5px 0;">
+                            {collar_options_list}
+                        </ul>
+                    </td>
+                    <td width="33%" style="border-right: 1px solid #ddd;">
+                        <b>Button Options:</b>
+                        <ul style="list-style-type: none; padding-left: 10px; margin: 5px 0;">
+                            {button_options_list}
+                        </ul>
+                    </td>
+                    <td width="34%">
+                        <b>Printing Options:</b>
+                        <ul style="list-style-type: none; padding-left: 10px; margin: 5px 0;">
+                            {printing_options_list}
+                        </ul>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="summary">
+                <p><b>Advance Paid:</b> ₹ {advance_paid}</p>
+                <p style="font-size: 14pt; color: #d9534f; margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 5px;">
+                    <b>GRAND TOTAL:</b> ₹ {grand_total}
+                </p>
+            </div>
+            
+            <div style="clear: both; margin-top: 10px;">
+                <h2 class="section-header">Remarks</h2>
+                <p>{remarks if remarks != "N/A" else "No special remarks."}</p>
+            </div>
+            
+            <div style="margin-top: 50px; text-align: center; font-size: 8pt; color: #777;">
+                <p>Signature (Seller)</p>
+            </div>
+
+        </body>
+        </html>
         """
         return html_content
-
+   
     def print_document(self, printer):
         doc = QTextDocument()
         doc.setHtml(self.get_print_content())
@@ -1248,7 +1422,6 @@ class PrintExportDialog(QDialog):
             self.print_document(printer)
 
     def show_preview(self):
-        """Opens the built-in Print Preview dialog."""
         printer = QPrinter(QPrinter.HighResolution)
         preview = QPrintPreviewDialog(printer, self)
         preview.paintRequested.connect(self.print_document)
@@ -1268,20 +1441,20 @@ class PrintExportDialog(QDialog):
     def show_export_menu_from_preview(self):
 
         menu = QMenu(self)
-        # PDF Export
+
         pdf_action = menu.addAction("Export to PDF (*.pdf)")
         pdf_action.triggered.connect(lambda: self._perform_pdf_save(None, show_msg=True))
-        # Image Export
+
         image_action = menu.addAction("Export to Image (*.png, *.jpg)")
         image_action.triggered.connect(lambda: self._perform_image_save(None, show_msg=True)) 
         menu.addSeparator()
-        # Excel Export
+
         excel_action = menu.addAction("Export to Excel (*.xlsx)")
         excel_action.triggered.connect(lambda: self._perform_excel_save(None, show_msg=True))
-        # Word Export
+
         word_action = menu.addAction("Export to Word (*.docx)")
         word_action.triggered.connect(lambda: self._perform_word_ppt_save(None, 'word', show_msg=True))
-        # PowerPoint Export
+
         ppt_action = menu.addAction("Export to PowerPoint (*.pptx)")
         ppt_action.triggered.connect(lambda: self._perform_word_ppt_save(None, 'ppt', show_msg=True))
         menu.exec_(QCursor.pos())
