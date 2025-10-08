@@ -1197,7 +1197,6 @@ class OrderForm(QWidget):
         dialog = PrintExportDialog(content_data=order_details_string, parent=self)
         dialog.exec_()
     
-
    
 class PrintExportDialog(QDialog):
     def __init__(self, content_data, parent=None):
@@ -1425,7 +1424,6 @@ class PrintExportDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"An error occurred during {file_type.title()} export: {e}")
             return None
-
         
     def share_via_whatsapp(self, file_path=None):
         """
@@ -1475,39 +1473,57 @@ class PrintExportDialog(QDialog):
         message = f"Please find the Order Report (Order No: {order_no}) in {ext} format."
         encoded_message = QUrl.toPercentEncoding(message).data().decode()
         url = f"https://web.whatsapp.com/send?text={encoded_message}" 
-        
+        # 1. Open the WhatsApp link (opens browser/desktop app)
         webbrowser.open(url)
-        QMessageBox.information(self, "Manual Step Required", 
-                                f"Your browser has opened WhatsApp. Please **manually attach** the saved file:\n\n{file_path}")
+
+        # 2. Open the file's containing folder (Cross-platform way to show the file)
+        try:
+            if sys.platform == 'win32':
+                # Windows: Opens Explorer and selects the file
+                os.startfile(os.path.dirname(file_path)) 
+            elif sys.platform == 'darwin':
+                # macOS: Opens Finder and selects the file
+                os.system(f'open -R "{file_path}"')
+            else:
+                # Linux: Opens the file's directory
+                os.system(f'xdg-open "{os.path.dirname(file_path)}"')
+                
+            QMessageBox.information(
+                self, 
+                "Action Required 🚨", 
+                f"1. WhatsApp has opened in your browser/desktop app.\n"
+                f"2. The file folder has also opened.\n\n"
+                f"Please **drag and drop** the file onto the chat window to share it!"
+            )
+        except Exception as e:
+            QMessageBox.warning(
+                self, 
+                "Action Required 🚨", 
+                f"WhatsApp link opened. Could not open file explorer automatically.\n\n"
+                f"Please manually navigate to and attach the saved file:\n\n{file_path}"
+            )
 
     def show_whatsapp_share_menu_from_preview(self):
         """Shows format options for sharing, using the reusable save functions."""
         menu = QMenu(self)
         
-        # --- 1. Share as PDF ---
         pdf_action = menu.addAction("Share as PDF")
         pdf_action.triggered.connect(lambda: self.share_file_and_whatsapp(self._perform_pdf_save))
         
-        # --- 2. Share as Image ---
         image_action = menu.addAction("Share as Image (PNG/JPG)")
         image_action.triggered.connect(lambda: self.share_file_and_whatsapp(self._perform_image_save))
         
         menu.addSeparator()
-
-        # --- 3. Share as Excel ---
         excel_action = menu.addAction("Share as Excel (.xlsx)")
         excel_action.triggered.connect(lambda: self.share_file_and_whatsapp(self._perform_excel_save))
         
-        # --- 4. Share as Word ---
         word_action = menu.addAction("Share as Word (.docx)")
         word_action.triggered.connect(lambda: self.share_file_and_whatsapp(self._perform_word_ppt_save, 'word'))
 
         menu.exec_(QCursor.pos())
 
     def share_file_and_whatsapp(self, save_func, file_type=None):
-        """Generic function to call a save method and then initiate WhatsApp sharing."""
         
-        # Pass None to the save function to signal that it should open the QFileDialog
         if file_type:
             file_path = save_func(None, file_type)
         else:
@@ -1515,7 +1531,6 @@ class PrintExportDialog(QDialog):
             
         if file_path:
             self.share_via_whatsapp(file_path)
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
