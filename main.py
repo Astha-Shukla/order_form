@@ -1265,41 +1265,25 @@ class PrintExportDialog(QDialog):
 
         preview.exec_()
 
-    def handle_export_to_file(self):
-        
-        order_no = self.parent().order_number.text() if hasattr(self.parent(), 'order_number') else "temp"
-        file_filters = (
-            "PDF Files (*.pdf);;"
-            "Excel Files (*.xlsx);;"
-            "Image Files (*.png *.jpg);;"
-            "Word Documents (*.docx);;"
-            "PowerPoint Presentations (*.pptx)"
-        )
-        fileName, selected_filter = QFileDialog.getSaveFileName(
-            self, "Export Order Report", f"Order_{order_no}", file_filters
-        )
-        
-        if not fileName:
-            return None # User cancelled
-
-        if "PDF Files" in selected_filter:
-            return self._perform_pdf_save(fileName, show_msg=True)
-        elif "Excel Files" in selected_filter:
-            return self._perform_excel_save(fileName, show_msg=True)
-        elif "Image Files" in selected_filter:
-            return self._perform_image_save(fileName, show_msg=True)
-        elif "Word Documents" in selected_filter:
-            return self._perform_word_ppt_save(fileName, 'word', show_msg=True)
-        elif "PowerPoint Presentations" in selected_filter:
-            return self._perform_word_ppt_save(fileName, 'ppt', show_msg=True)
-        
-        return None
-
     def show_export_menu_from_preview(self):
 
         menu = QMenu(self)
-        export_action = menu.addAction("Export to All Formats...")
-        export_action.triggered.connect(self.handle_export_to_file)
+        # PDF Export
+        pdf_action = menu.addAction("Export to PDF (*.pdf)")
+        pdf_action.triggered.connect(lambda: self._perform_pdf_save(None, show_msg=True))
+        # Image Export
+        image_action = menu.addAction("Export to Image (*.png, *.jpg)")
+        image_action.triggered.connect(lambda: self._perform_image_save(None, show_msg=True)) 
+        menu.addSeparator()
+        # Excel Export
+        excel_action = menu.addAction("Export to Excel (*.xlsx)")
+        excel_action.triggered.connect(lambda: self._perform_excel_save(None, show_msg=True))
+        # Word Export
+        word_action = menu.addAction("Export to Word (*.docx)")
+        word_action.triggered.connect(lambda: self._perform_word_ppt_save(None, 'word', show_msg=True))
+        # PowerPoint Export
+        ppt_action = menu.addAction("Export to PowerPoint (*.pptx)")
+        ppt_action.triggered.connect(lambda: self._perform_word_ppt_save(None, 'ppt', show_msg=True))
         menu.exec_(QCursor.pos())
 
     def _perform_pdf_save(self, fileName=None, show_msg=False):
