@@ -1369,6 +1369,21 @@ class PrintExportDialog(QDialog):
                 .item-table th {{ background-color: #e9ecef; }}
                 .summary {{ float: right; margin-top: 15px; padding: 10px; border: 2px solid #333; width: 40%; text-align: right; }}
                 .options-table td {{ font-size: 9pt; }}
+                .options-cell {{width: 55%; 
+                    vertical-align: top; 
+                    border-left: 1px solid #ddd; 
+                    padding-left: 15px;
+                    box-sizing: border-box; 
+                    word-wrap: break-word;
+                }}                
+                .image-cell {{
+                    width: 45%; 
+                    vertical-align: top; 
+                    padding-right: 15px; 
+                    text-align: center;
+                }}
+                .product-image-preview {{ max-width: 100%; max-height: 250px; width: auto; height: auto; border: 1px solid #ccc; object-fit: contain;}}
+                .options-table ul {{margin: 0 0 5px 0 !important; padding-left: 10px !important;}}
             </style>
         </head>
         <body>
@@ -1401,13 +1416,13 @@ class PrintExportDialog(QDialog):
             <h2 class="section-header">Product Design & Customization</h2>
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                 <tr>
-                    <td style="width: 45%; vertical-align: top; padding-right: 15px;">
-                        <div style="text-align: center;">
-                            {f'<img src="{image_base64_uri}" style="max-width: 100%; height: auto; border: 1px solid #ccc;"/>' if image_base64_uri else '<p>No Product Image Selected.</p>'}
+                    <td class="image-cell">
+                        <div style="max-width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                            {f'<img src="{image_base64_uri}" class="product-image-preview" alt="Product Design"/>' if image_base64_uri else '<p>No Product Image Selected.</p>'}
                         </div>
                     </td>
-                    
-                    <td style="width: 55%; vertical-align: top; border-left: 1px solid #ddd; padding-left: 15px;">
+
+                    <td class="options-cell">
                         <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Printing Options</h3>
                         <ul style="list-style-type: none; padding-left: 10px; margin: 0 0 10px 0; font-size: 10pt;">
                             {printing_options_list}
