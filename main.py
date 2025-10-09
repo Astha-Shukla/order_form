@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtPrintSupport import QPrintDialog, QPrintPreviewWidget, QPrinter, QPrintPreviewDialog
 from PyQt5.QtGui import QPixmap, QImage, QPainter, QPageSize, QPen, QColor, QTextDocument, QCursor
-from PyQt5.QtCore import Qt, QUrl, QSize, QSizeF, QDate, QPointF, QRectF
+from PyQt5.QtCore import Qt, QUrl, QSize, QSizeF, QDate, QPointF, QRectF, QByteArray, QBuffer, QIODevice
 
 MEDIA_ROOT = os.path.join(os.getcwd(), 'media')  # The main folder
 TEMPLATE_DIR = os.path.join(MEDIA_ROOT, 'templates') # For blank shirt images (ComboBox source)
@@ -1230,7 +1230,28 @@ class OrderForm(QWidget):
         
         dialog = PrintExportDialog(content_data=item_table_html, parent=self)
         dialog.exec_()
-    
+    def _capture_canvas_as_base64(self):
+        """Captures the QGraphicsView/Scene content and returns a Base64 URI."""
+        # Assuming your QGraphicsView is named 'self.canvas' and QGraphicsScene is 'self.scene'
+        if not hasattr(self, 'canvas') or not self.canvas:
+            return ""
+
+        # Use the size of the canvas view
+        pixmap = QPixmap(self.canvas.size())
+        pixmap.fill(Qt.white) # Ensure white background
+
+        painter = QPainter(pixmap)
+        self.canvas.render(painter) # Render the view content
+        painter.end()
+
+        # Convert Pixmap to Base64 URI
+        byte_array = QByteArray()
+        buffer = QBuffer(byte_array)
+        buffer.open(QIODevice.WriteOnly)
+        pixmap.save(buffer, "PNG") 
+        
+        base64_data = byte_array.toBase64().data().decode()
+        return f"data:image/png;base64,{base64_data}"
    
 class PrintExportDialog(QDialog):
     def __init__(self, content_data, parent=None):
@@ -1311,6 +1332,13 @@ class PrintExportDialog(QDialog):
         else:
             grand_total = "0.00" 
         remarks = self._get_parent_text('remark_input') 
+
+        # NEW: Get the canvas image data from the parent form
+        parent = self.parent()
+        image_base64_uri = ""
+        if hasattr(parent, '_capture_canvas_as_base64'):
+            image_base64_uri = parent._capture_canvas_as_base64()
+
         collar_options = [
             self._get_parent_checkbox_state('self_collar_checkbox'),
             self._get_parent_checkbox_state('rib_collar_checkbox'),
@@ -1341,7 +1369,7 @@ class PrintExportDialog(QDialog):
             </style>
         </head>
         <body>
-            <h1>Order Report</h1>
+            <h1>Order Summary</h1>
             <hr>
 
             <table class="header-table">
@@ -1358,6 +1386,11 @@ class PrintExportDialog(QDialog):
                     <td><b>GST No:</b> {gst_no}</td>
                 </tr>
             </table>
+
+            <h2 class="section-header">Product Design</h2>
+            <div style="text-align: center; margin-bottom: 20px;">
+                {f'<img src="{image_base64_uri}" style="max-width: 90%; height: auto; border: 1px solid #ccc;"/>' if image_base64_uri else '<p>No custom design image available.</p>'}
+            </div>
 
             <h2 class="section-header">Item Details</h2>
             
