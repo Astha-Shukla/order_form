@@ -511,30 +511,25 @@ class OrderForm(QWidget):
         self.collar_cloth = QComboBox()
         self.collar_cloth.addItems(["Cotton", "Polyester", "Blended", "Other"])
 
-        rb_self = QCheckBox("Self Collar")
-        rb_self.setChecked(True)
-        rb_self.toggled.connect(lambda checked: setattr(self, "collar_var", "self") if checked else None)
-        grid1.addWidget(rb_self, 0, 0)
+        self.rb_self = QCheckBox("Self Collar")
+        self.rb_self.setChecked(True)
+        self.rb_self.toggled.connect(lambda checked: setattr(self, "collar_var", "self") if checked else None)
+        grid1.addWidget(self.rb_self, 0, 0)
         grid1.addWidget(QLabel("Price"), 0, 1)
         grid1.addWidget(self.collar_price_self, 0, 2)
 
-        rb_rib = QCheckBox("RIB collar")
-        rb_rib.toggled.connect(lambda checked: setattr(self, "collar_var", "rib") if checked else None)
-        grid1.addWidget(rb_rib, 1, 0)
+        self.rb_rib = QCheckBox("RIB collar")
+        self.rb_rib.toggled.connect(lambda checked: setattr(self, "collar_var", "rib") if checked else None)
+        grid1.addWidget(self.rb_rib, 1, 0)
         grid1.addWidget(QLabel("Price"), 1, 1)
         grid1.addWidget(self.collar_price_rib, 1, 2)
 
-        rb_patti = QCheckBox("RIB Patti")
-        rb_patti.toggled.connect(lambda checked: setattr(self, "collar_var", "patti") if checked else None)
-        grid1.addWidget(rb_patti, 2, 0)
+        self.rb_patti = QCheckBox("RIB Patti")
+        self.rb_patti.toggled.connect(lambda checked: setattr(self, "collar_var", "patti") if checked else None)
+        grid1.addWidget(self.rb_patti, 2, 0)
         grid1.addWidget(QLabel("Price"), 2, 1)
         grid1.addWidget(self.collar_price_patti, 2, 2)
 
-        """other_patti = QCheckBox("Other Patti")
-        other_patti.toggled.connect(lambda checked: setattr(self, "collar_var", "patti") if checked else None)
-        grid1.addWidget(rb_patti, 2, 0)
-        grid1.addWidget(QLabel("Price"), 2, 1)
-        grid1.addWidget(self.collar_price_patti, 2, 2)"""
         layout.addWidget(sec1, 0, 1)
  
         # ========== Button and Style Options ==========
@@ -542,24 +537,24 @@ class OrderForm(QWidget):
         grid_button = QGridLayout(sec_button)
 
         self.style_var = "button"
-        rb_button = QCheckBox("BUTTON")
-        rb_button.setFixedWidth(200)
-        rb_button.setChecked(True)
-        rb_button.toggled.connect(lambda: setattr(self, "style_var", "button"))
-        grid_button.addWidget(rb_button, 0, 0)
+        self.rb_button = QCheckBox("BUTTON")
+        self.rb_button.setFixedWidth(200)
+        self.rb_button.setChecked(True)
+        self.rb_button.toggled.connect(lambda: setattr(self, "style_var", "button"))
+        grid_button.addWidget(self.rb_button, 0, 0)
 
-        rb_plain = QRadioButton("PLAIN")
+        self.rb_plain = QRadioButton("PLAIN")
         # rb_plain.setChecked(True)
-        rb_plain.toggled.connect(lambda: setattr(self, "style_var", "plain"))
-        grid_button.addWidget(rb_plain, 1, 0)
+        self.rb_plain.toggled.connect(lambda: setattr(self, "style_var", "plain"))
+        grid_button.addWidget(self.rb_plain, 1, 0)
 
-        rb_box = QRadioButton("BOX")
-        rb_box.toggled.connect(lambda: setattr(self, "style_var", "box"))
-        grid_button.addWidget(rb_box, 2, 0)
+        self.rb_box = QRadioButton("BOX")
+        self.rb_box.toggled.connect(lambda: setattr(self, "style_var", "box"))
+        grid_button.addWidget(self.rb_box, 2, 0)
 
-        rb_vplus = QRadioButton("V+")
-        rb_vplus.toggled.connect(lambda: setattr(self, "style_var", "vplus"))
-        grid_button.addWidget(rb_vplus, 3, 0)
+        self.rb_vplus = QRadioButton("V+")
+        self.rb_vplus.toggled.connect(lambda: setattr(self, "style_var", "vplus"))
+        grid_button.addWidget(self.rb_vplus, 3, 0)
 
         layout.addWidget(sec_button,0,2)
         layout.setColumnStretch(0, 0)
@@ -1281,39 +1276,32 @@ class PrintExportDialog(QDialog):
             return getattr(parent, attribute_name).text()
         return default
 
-    def _get_parent_checkbox_state(self, attribute_name):
+    def _get_parent_checkbox_state(self, checkbox_attr_name, price_attr_name):
         parent = self.parent()
-        if hasattr(parent, attribute_name) and getattr(parent, attribute_name) and hasattr(getattr(parent, attribute_name), 'isChecked'):
-            checkbox = getattr(parent, attribute_name)
-            if checkbox.isChecked():
-                price = self._get_parent_text(f'{attribute_name}_price', "0")
-                return f"✅ {checkbox.text()} (Price: {price})"
+        if hasattr(parent, checkbox_attr_name):
+            widget = getattr(parent, checkbox_attr_name)
+            if hasattr(widget, 'isChecked') and widget.isChecked():
+                price = self._get_parent_text(price_attr_name, "0")
+                option_text = widget.text().strip()
+                return f"✅ {option_text} (Price: {price})"
         return None
     
     def _get_parent_printing_options(self):
         parent = self.parent()
         printing_options = []
         
-        option_map = {
-            'front_checkbox': 'front_price',
-            'back_checkbox': 'back_price',
-            'patch_checkbox': 'patch_price',
-            'embroidery_checkbox': 'embroidery_price',
-            'dtf_checkbox': 'dtf_price',
-            'front_sublimation_checkbox': 'front_sublimation_price',
-            'back_sublimation_checkbox': 'back_sublimation_price',
-        }
+        keys = ['front', 'back', 'patch', 'embroidery', 'Dtf', 'Front sablimation', 'Back sablimation']
         
-        for attr, price_attr_suffix in option_map.items():
-            if hasattr(parent, attr) and getattr(parent, attr) and hasattr(getattr(parent, attr), 'isChecked'):
-                checkbox = getattr(parent, attr)
-                
-                price_field_name = f"{attr.replace('_checkbox', '')}_price"
-                price = self._get_parent_text(price_field_name, "0")
-                
-                if checkbox.isChecked():
-                    option_text = checkbox.text().strip()
-                    printing_options.append(f"<li>✅ {option_text} (Price: {price} INR)</li>")
+        if hasattr(parent, 'print_vars'):
+            print_vars = getattr(parent, 'print_vars')
+            for key in keys:
+                if key in print_vars:
+                    checkbox, price_edit = print_vars[key]
+                    
+                    if checkbox.isChecked():
+                        price = price_edit.text() if hasattr(price_edit, 'text') else "0"
+                        option_text = checkbox.text().strip()
+                        printing_options.append(f"<li>✅ {option_text} (Price: {price} INR)</li>")
 
         return "".join(printing_options) or "<li>None Selected</li>"
     
@@ -1335,20 +1323,33 @@ class PrintExportDialog(QDialog):
         barcode = self._get_parent_text('barcode')
         advance_paid = self._get_parent_text('advance_paid')
 
-        # NEW: Get the canvas image data from the parent form
         parent = self.parent()
         image_base64_uri = ""
         if hasattr(parent, '_capture_canvas_as_base64'):
             image_base64_uri = parent._capture_canvas_as_base64()
 
         collar_options = [
-            self._get_parent_checkbox_state('self_collar_checkbox'),
-            self._get_parent_checkbox_state('rib_collar_checkbox'),
-            self._get_parent_checkbox_state('rib_patti_checkbox')
+            self._get_parent_checkbox_state('rb_self', 'collar_price_self'), 
+            self._get_parent_checkbox_state('rb_rib', 'collar_price_rib'),
+            self._get_parent_checkbox_state('rb_patti', 'collar_price_patti')
         ]
         collar_options_list = "".join(f"<li>{opt}</li>" for opt in collar_options if opt) or "<li>None Selected</li>"
 
-        button_options_list = f"<li>{self._get_parent_text('button_option')}</li>" # Assumes button_option holds the selected radio button text
+        button_options = []
+        button_option_map = {
+            'BUTTON': 'rb_button',
+            'PLAIN': 'rb_plain',
+            'BOX': 'rb_box',
+            'V+': 'rb_vplus'
+        }
+        
+        for text, attr_name in button_option_map.items():
+            if hasattr(parent, attr_name):
+                widget = getattr(parent, attr_name)
+                if hasattr(widget, 'isChecked') and widget.isChecked():
+                    button_options.append(f"✅ {text}")
+                    
+        button_options_list = "".join(f"<li>{opt}</li>" for opt in button_options) or "<li>None Selected (Default)</li>"
 
         printing_options_list = self._get_parent_printing_options()
     
@@ -1397,40 +1398,39 @@ class PrintExportDialog(QDialog):
                 </tr>
             </table>
 
-            <h2 class="section-header">Product Design</h2>
-            <div style="text-align: center; margin-bottom: 20px;">
-                {f'<img src="{image_base64_uri}" style="max-width: 90%; height: auto; border: 1px solid #ccc;"/>' if image_base64_uri else '<p>No custom design image available.</p>'}
-            </div>
+            <h2 class="section-header">Product Design & Customization</h2>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                <tr>
+                    <td style="width: 45%; vertical-align: top; padding-right: 15px;">
+                        <div style="text-align: center;">
+                            {f'<img src="{image_base64_uri}" style="max-width: 100%; height: auto; border: 1px solid #ccc;"/>' if image_base64_uri else '<p>No Product Image Selected.</p>'}
+                        </div>
+                    </td>
+                    
+                    <td style="width: 55%; vertical-align: top; border-left: 1px solid #ddd; padding-left: 15px;">
+                        <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Printing Options</h3>
+                        <ul style="list-style-type: none; padding-left: 10px; margin: 0 0 10px 0; font-size: 10pt;">
+                            {printing_options_list}
+                        </ul>
+
+                        <h3 style="margin-top: 5px; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Collar Options</h3>
+                        <ul style="list-style-type: none; padding-left: 10px; margin: 0 0 10px 0; font-size: 10pt;">
+                            {collar_options_list}
+                        </ul>
+                        
+                        <h3 style="margin-top: 5px; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Button Options</h3>
+                        <ul style="list-style-type: none; padding-left: 10px; margin: 0 0 10px 0; font-size: 10pt;">
+                            {button_options_list}
+                        </ul>
+                    </td>
+                </tr>
+            </table>
 
             <h2 class="section-header">Item Details</h2>
             
             <div class="item-table-container">
                 {self.content_data}
             </div>
-
-            <h2 class="section-header" style="clear: both;">Customization Options (Global Instructions)</h2>
-            <table class="header-table options-table">
-                <tr>
-                    <td width="33%" style="border-right: 1px solid #ddd;">
-                        <b>Collar Options:</b>
-                        <ul style="list-style-type: none; padding-left: 10px; margin: 5px 0;">
-                            {collar_options_list}
-                        </ul>
-                    </td>
-                    <td width="33%" style="border-right: 1px solid #ddd;">
-                        <b>Button Options:</b>
-                        <ul style="list-style-type: none; padding-left: 10px; margin: 5px 0;">
-                            {button_options_list}
-                        </ul>
-                    </td>
-                    <td width="34%">
-                        <b>Printing Options:</b>
-                        <ul style="list-style-type: none; padding-left: 10px; margin: 5px 0;">
-                            {printing_options_list}
-                        </ul>
-                    </td>
-                </tr>
-            </table>
 
             <div class="summary">
                 <p style="font-size: 14pt; color: #d9534f; margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 5px;">
