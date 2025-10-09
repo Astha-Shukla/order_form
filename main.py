@@ -1324,7 +1324,6 @@ class PrintExportDialog(QDialog):
         order_date = self._get_parent_text('order_date') 
         delivery_date = self._get_parent_text('delivery_date')
         gst_no = self._get_parent_text('gst_no') 
-        advance_paid = self._get_parent_text('advance_paid')
         address = self._get_parent_text('address') 
         raw_grand_total_text = self._get_parent_text('grand_total_label')
         if ':' in raw_grand_total_text:
@@ -1332,6 +1331,9 @@ class PrintExportDialog(QDialog):
         else:
             grand_total = "0.00" 
         remarks = self._get_parent_text('remark_input') 
+        school_name = self._get_parent_text('school_name') 
+        barcode = self._get_parent_text('barcode')
+        advance_paid = self._get_parent_text('advance_paid')
 
         # NEW: Get the canvas image data from the parent form
         parent = self.parent()
@@ -1374,16 +1376,24 @@ class PrintExportDialog(QDialog):
 
             <table class="header-table">
                 <tr>
-                    <td width="50%"><b>Order No:</b> {order_no}</td>
-                    <td width="50%"><b>Order Date:</b> {order_date}</td>
+                    <td width="33%"><b>Order No:</b> {order_no}</td>
+                    <td width="33%"><b>Order Date:</b> {order_date}</td>
+                    <td width="34%"><b>Delivery Date:</b> {delivery_date}</td>
                 </tr>
                 <tr>
                     <td><b>Party Name:</b> {party_name}</td>
-                    <td><b>Delivery Date:</b> {delivery_date}</td>
+                    <td><b>GST No:</b> {gst_no}</td>
                 </tr>
                 <tr>
-                    <td><b>Address:</b> {address}</td>
-                    <td><b>GST No:</b> {gst_no}</td>
+                    <td colspan="3"><b>School Name:</b> {school_name}</td>
+                </tr>
+                <tr>
+                    <td colspan="3"><b>Address:</b> {address}</td>
+                </tr>
+                <tr>
+                    
+                    <td><b>Barcode:</b> {barcode}</td>
+                    <td><b>Advance Paid:</b> ₹ {advance_paid}</td>
                 </tr>
             </table>
 
@@ -1423,7 +1433,6 @@ class PrintExportDialog(QDialog):
             </table>
 
             <div class="summary">
-                <p><b>Advance Paid:</b> ₹ {advance_paid}</p>
                 <p style="font-size: 14pt; color: #d9534f; margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 5px;">
                     <b>GRAND TOTAL:</b> ₹ {grand_total}
                 </p>
@@ -1459,8 +1468,8 @@ class PrintExportDialog(QDialog):
         preview = QPrintPreviewDialog(printer, self)
         preview.paintRequested.connect(self.print_document)
 
-        export_btn = QPushButton("🔽 Export Options")
-        export_btn.setToolTip("Export to PDF/Excel/Image/Word/PPT")
+        export_btn = QPushButton("🔽 Save Options")
+        export_btn.setToolTip("Save to PDF/Excel/Image/Word/PPT")
         export_btn.clicked.connect(self.show_export_menu_from_preview)
         preview.layout().addWidget(export_btn) 
 
@@ -1475,20 +1484,20 @@ class PrintExportDialog(QDialog):
 
         menu = QMenu(self)
 
-        pdf_action = menu.addAction("Export to PDF (*.pdf)")
+        pdf_action = menu.addAction("Save to PDF (*.pdf)")
         pdf_action.triggered.connect(lambda: self._perform_pdf_save(None, show_msg=True))
 
-        image_action = menu.addAction("Export to Image (*.png, *.jpg)")
+        image_action = menu.addAction("Save to Image (*.png, *.jpg)")
         image_action.triggered.connect(lambda: self._perform_image_save(None, show_msg=True)) 
         menu.addSeparator()
 
-        excel_action = menu.addAction("Export to Excel (*.xlsx)")
+        excel_action = menu.addAction("Save to Excel (*.xlsx)")
         excel_action.triggered.connect(lambda: self._perform_excel_save(None, show_msg=True))
 
-        word_action = menu.addAction("Export to Word (*.docx)")
+        word_action = menu.addAction("Save to Word (*.docx)")
         word_action.triggered.connect(lambda: self._perform_word_ppt_save(None, 'word', show_msg=True))
 
-        ppt_action = menu.addAction("Export to PowerPoint (*.pptx)")
+        ppt_action = menu.addAction("Save to PowerPoint (*.pptx)")
         ppt_action.triggered.connect(lambda: self._perform_word_ppt_save(None, 'ppt', show_msg=True))
         menu.exec_(QCursor.pos())
 
