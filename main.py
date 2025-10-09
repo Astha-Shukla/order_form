@@ -1095,6 +1095,7 @@ class OrderForm(QWidget):
         
         self.save_btn = QPushButton("💾\n SAVE")
         self.undo_btn=QPushButton("↩️\n CANCEL")
+        self.quotatation_btn = QPushButton("💾\n QUOTATION")
         self.bill_btn = QPushButton("🧾\n GENERATE BILL")
         self.job_btn = QPushButton("⚒️\n JOB WORK")
         self.rib_btn = QPushButton("🧵\n RIB COLLAR")
@@ -1104,13 +1105,17 @@ class OrderForm(QWidget):
         self.bill_btn.setFixedWidth(170)
         self.save_btn.setFixedWidth(140)
         self.undo_btn.setFixedWidth(140)
+        self.quotatation_btn.setFixedWidth(140)
         self.job_btn.setFixedWidth(140)
         self.rib_btn.setFixedWidth(140)
         self.cut_btn.setFixedWidth(140)
         self.print_btn.setFixedWidth(140)
+
+        #Connect Buttons to functions
+        self.quotatation_btn.clicked.connect(self.show_quotation_preview)
        
         buttons = [
-            self.save_btn,self.undo_btn, self.bill_btn, self.job_btn,
+            self.save_btn,self.undo_btn, self.quotatation_btn, self.bill_btn, self.job_btn,
             self.rib_btn, self.cut_btn, self.print_btn
         ]
 
@@ -1128,6 +1133,11 @@ class OrderForm(QWidget):
                 buttons_layout.addSpacing(1)  # yaha 30px gap set karo
         buttons_layout.addStretch()
         return buttons_layout
+    
+    def show_quotation_preview(self): 
+        content_data = self._generate_item_table_html()
+        dialog = PrintExportDialog(self, content_data, document_type="QUOTATION")
+        dialog.exec_()
     
     def open_search_window(self):
         # नया window बनाओ
@@ -1249,10 +1259,11 @@ class OrderForm(QWidget):
         return f"data:image/png;base64,{base64_data}"
    
 class PrintExportDialog(QDialog):
-    def __init__(self, content_data, parent=None):
-        super().__init__(parent)
+    def __init__(self, parent, content_data, document_type="ORDER", **kwargs):
+        super().__init__(parent, **kwargs)
         self.setWindowTitle("Print and Export Options")
-        self.content_data = content_data # Data to be printed/exported
+        self.content_data = content_data 
+        self.document_type = document_type
         self.setGeometry(200, 200, 350, 200)
 
         main_layout = QVBoxLayout(self)
@@ -1352,6 +1363,11 @@ class PrintExportDialog(QDialog):
         button_options_list = "".join(f"<li>{opt}</li>" for opt in button_options) or "<li>None Selected (Default)</li>"
 
         printing_options_list = self._get_parent_printing_options()
+
+        if self.document_type == "QUOTATION":
+            report_title = "Quotation / Estimate"   
+        else: 
+            report_title = "Order Summary"
     
         html_content = f"""
         <html>
