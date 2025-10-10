@@ -606,7 +606,7 @@ class OrderForm(QWidget):
         # Design Textbox
         self.design_edit = QLineEdit()
         self.design_edit.setPlaceholderText("Enter Design Details")
-        self.design_edit.setFixedWidth(200)
+        self.design_edit.setFixedWidth(400)
         self.design_edit.setStyleSheet(INPUT_STYLE) 
         font = self.design_edit.font()
         font.setPointSize(11)
@@ -834,13 +834,13 @@ class OrderForm(QWidget):
       
         # Fabric
         self.cloth_combo = QComboBox()
-        self.cloth_combo.addItems(["Shirt", "Pant", "Kurta"])
+        self.cloth_combo.addItems(["Cotton", "Platted", "Jabro"])
         add_field("Fabric:", self.cloth_combo, 195)
         
 
         # Type
         self.type_combo = QComboBox()
-        self.type_combo.addItems(["Cotton", "Silk", "Linen"])
+        self.type_combo.addItems(["T-shirt", "Track-pant", "Shorts"])
         add_field("Type:", self.type_combo, 195)
 
         # Color
@@ -943,9 +943,9 @@ class OrderForm(QWidget):
             return
         
         # T-SHIRT FILTERING 
-        fabric_text = self.cloth_combo.currentText().lower()
+        type_text = self.type_combo.currentText().lower() 
         
-        is_shirt_item = "shirt" in fabric_text 
+        is_shirt_item = "t-shirt" in type_text 
         
         printing_add_on_per_unit = 0.0
         collar_add_on_per_unit = 0.0
