@@ -603,6 +603,17 @@ class OrderForm(QWidget):
         self.sub_combo.setFont(font)
         status_layout.addWidget(self.sub_combo)
 
+        # Design Textbox
+        self.design_edit = QLineEdit()
+        self.design_edit.setPlaceholderText("Enter Design Details")
+        self.design_edit.setFixedWidth(200)
+        self.design_edit.setStyleSheet(INPUT_STYLE) 
+        font = self.design_edit.font()
+        font.setPointSize(11)
+        self.design_edit.setFont(font)
+        status_layout.addWidget(QLabel("Design:")) 
+        status_layout.addWidget(self.design_edit)
+
         status_layout.addStretch()
 
         # Connect main combo to show/hide sub-combo
