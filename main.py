@@ -941,9 +941,26 @@ class OrderForm(QWidget):
             print("Error: Quantity or Unit Price must be valid numbers.")
             self.items_container.removeRow(row)
             return
-        printing_add_on_per_unit = self.get_total_printing_price()
-        collar_add_on_per_unit = self.get_selected_collar_price()
+        
+        # --- NEW LOGIC FOR T-SHIRT FILTERING ---
+        fabric_text = self.cloth_combo.currentText().lower()
+        
+        # Check if the item is a "Shirt" (or T-shirt, or any item where add-ons apply)
+        # Using "shirt" as the filter key (e.g., "Self Collar T-Shirt" -> contains "shirt")
+        is_shirt_item = "shirt" in fabric_text 
+        
+        printing_add_on_per_unit = 0.0
+        collar_add_on_per_unit = 0.0
+
+        if is_shirt_item:
+            # ONLY include add-ons if it's a T-shirt/Shirt item
+            printing_add_on_per_unit = self.get_total_printing_price()
+            collar_add_on_per_unit = self.get_selected_collar_price()
+        
+        # Base Unit Price + All Add-ons (if applicable) * Quantity
         total = (unit + printing_add_on_per_unit + collar_add_on_per_unit) * qty
+
+        # --- END OF NEW LOGIC --- * qty
 
         # Cloth
         item = QTableWidgetItem(self.cloth_combo.currentText())
@@ -1016,14 +1033,12 @@ class OrderForm(QWidget):
             pass # Price remains 0.0 if conversion fails
         return collar_price
 
-    def _calculate_item_total_price(self, unit_price, qty):        
+    def _calculate_item_total_price(self, unit_price, qty, printing_add_on_per_unit, collar_add_on_per_unit):        
         # Add-on prices are per unit
         printing_add_on_per_unit = self.get_total_printing_price()
         collar_add_on_per_unit = self.get_selected_collar_price()       
-        add_on_total = (printing_add_on_per_unit + collar_add_on_per_unit) * qty
-        base_total = unit_price * qty
-        
-        return base_total + add_on_total
+        total = (unit_price + printing_add_on_per_unit + collar_add_on_per_unit) * qty
+        return total
     
     def _recalculate_all_item_totals(self):
         """Recalculates the Total Price for all rows in the table and updates the Grand Total."""
@@ -1032,16 +1047,22 @@ class OrderForm(QWidget):
         for row in range(self.items_container.rowCount()):
             unit_price_item = self.items_container.item(row, 5) 
             qty_item = self.items_container.item(row, 4) 
-            if unit_price_item and qty_item:
+            print_add_on_item = self.items_container.item(row, 7) 
+            collar_add_on_item = self.items_container.item(row, 8) 
+
+            if unit_price_item and qty_item and print_add_on_item and collar_add_on_item:
                 try:
                     unit_price = float(unit_price_item.text())
                     qty = int(qty_item.text())
-                    new_total_price = self._calculate_item_total_price(unit_price, qty)
+                    printing_add_on_per_unit = float(print_add_on_item.text())
+                    collar_add_on_per_unit = float(collar_add_on_item.text())
+                    new_total_price = self._calculate_item_total_price(unit_price, qty, printing_add_on_per_unit, collar_add_on_per_unit)
                     total_price_item = self.items_container.item(row, 6)
                     if not total_price_item:
                         total_price_item = QTableWidgetItem()
                         self.items_container.setItem(row, 6, total_price_item)
                         total_price_item.setText(f"{new_total_price:.2f}") 
+                        total_price_item.setTextAlignment(Qt.AlignCenter) 
                 except ValueError:
                     continue 
         self._update_grand_total()
