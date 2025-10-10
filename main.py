@@ -457,6 +457,16 @@ class OrderForm(QWidget):
             padding: 3px;
         """
 
+        # --- Style Constants for Dimming ---
+        DIM_COLOR = "#A9A9A9"
+        NORMAL_COLOR = "#000000"
+        DIM_INPUT_STYLE = f"""
+            background-color: white;
+            border: 1px solid {DIM_COLOR};
+            color: {DIM_COLOR};
+            padding: 3px;
+        """
+
     # ========== Printing Options ==========
         default_prices = {'front': '5', 'back': '7', 'patch': '5', 'embroidery': '15', 'Dtf': '0', 'Front sablimation': '60', 'Back sablimation': '60'}
         sec_print = QGroupBox("Printing Options", parent)
@@ -495,40 +505,55 @@ class OrderForm(QWidget):
         sec1.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         sec1.setMinimumWidth(250)
         sec1.setContentsMargins(20,0,50,0)
-        sec1.move(sec1.x(), 10)  # y=10 px upar se
-
+        sec1.move(sec1.x(), 10)
 
         self.collar_var = "self"
         self.collar_price_self = QLineEdit("0")
-        self.collar_price_self.setStyleSheet(INPUT_STYLE)
         self.collar_price_rib = QLineEdit("10")
-        self.collar_price_rib.setStyleSheet(INPUT_STYLE)
         self.collar_price_patti = QLineEdit("10")
-        self.collar_price_patti.setStyleSheet(INPUT_STYLE)
         self.collar_cloth = QComboBox()
         self.collar_cloth.addItems(["Cotton", "Polyester", "Blended", "Other"])
+        
+        def _style_price_only(checked, lineedit):
+            input_style = INPUT_STYLE if checked else DIM_INPUT_STYLE
+            lineedit.setStyleSheet(input_style)
 
+        # --- Self Collar ---
         self.rb_self = QCheckBox("Self Collar")
-        self.rb_self.setChecked(True)
-        self.rb_self.toggled.connect(lambda checked: setattr(self, "collar_var", "self") if checked else None)
+        self.rb_self.setChecked(True) 
+        self.rb_self.toggled.connect(lambda checked: (setattr(self, "collar_var", "self") if checked else None,
+            _style_price_only(checked, self.collar_price_self)
+        ))
         grid1.addWidget(self.rb_self, 0, 0)
-        grid1.addWidget(QLabel("Price"), 0, 1)
+        grid1.addWidget(QLabel("Price"), 0, 1) 
         grid1.addWidget(self.collar_price_self, 0, 2)
 
         self.rb_rib = QCheckBox("RIB collar")
-        self.rb_rib.toggled.connect(lambda checked: setattr(self, "collar_var", "rib") if checked else None)
+        self.rb_rib.toggled.connect(lambda checked: (setattr(self, "collar_var", "rib") if checked else None,
+            _style_price_only(checked, self.collar_price_rib)
+        ))
         grid1.addWidget(self.rb_rib, 1, 0)
         grid1.addWidget(QLabel("Price"), 1, 1)
         grid1.addWidget(self.collar_price_rib, 1, 2)
-
         self.rb_patti = QCheckBox("RIB Patti")
-        self.rb_patti.toggled.connect(lambda checked: setattr(self, "collar_var", "patti") if checked else None)
+        
+        self.rb_patti.toggled.connect(lambda checked: (setattr(self, "collar_var", "patti") if checked else None,
+            _style_price_only(checked, self.collar_price_patti)
+        ))
         grid1.addWidget(self.rb_patti, 2, 0)
         grid1.addWidget(QLabel("Price"), 2, 1)
         grid1.addWidget(self.collar_price_patti, 2, 2)
 
         layout.addWidget(sec1, 0, 1)
- 
+        
+        self.rb_self.setStyleSheet(f"color: {NORMAL_COLOR};") 
+        self.rb_rib.setStyleSheet(f"color: {NORMAL_COLOR};")
+        self.rb_patti.setStyleSheet(f"color: {NORMAL_COLOR};")
+        
+        _style_price_only(self.rb_self.isChecked(), self.collar_price_self)
+        _style_price_only(self.rb_rib.isChecked(), self.collar_price_rib)
+        _style_price_only(self.rb_patti.isChecked(), self.collar_price_patti)
+
         # ========== Button and Style Options ==========
         sec_button = QGroupBox("Button Options", parent)
         grid_button = QGridLayout(sec_button)
