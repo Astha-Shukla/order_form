@@ -5,20 +5,10 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QMe
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
 from PyQt5.QtGui import QTextDocument, QCursor, QPixmap, QPainter
 from PyQt5.QtCore import QUrl, QSize, QRectF
-
-try:
-    from openpyxl import Workbook
-except ImportError:
-    pass 
-try:
-    from docx import Document
-except ImportError:
-    pass
-try:
-    from pptx import Presentation
-    from pptx.util import Inches
-except ImportError:
-    pass 
+from openpyxl import Workbook
+from docx import Document
+from pptx import Presentation
+from pptx.util import Inches
 
 class PrintExportDialog(QDialog):
     def __init__(self, parent, content_data, document_type="ORDER", **kwargs):

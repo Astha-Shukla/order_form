@@ -1,7 +1,5 @@
 import sys
 import os
-import webbrowser
-from io import BytesIO
 import math
 
 from PyQt5.QtWidgets import (
@@ -9,13 +7,11 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton,  QFileDialog,
     QDateEdit, QToolButton, QComboBox, QDoubleSpinBox, QGraphicsView,
     QGraphicsScene, QGraphicsPixmapItem, QGraphicsProxyWidget, QFrame, 
-    QToolBar, QGridLayout, QGroupBox, QCheckBox, QTableWidget, QTableWidgetItem,
-    QSizePolicy, QMessageBox, QListWidgetItem, QScrollArea, 
-    QListWidget, QMenu,
-)
-from PyQt5.QtPrintSupport import QPrintDialog, QPrintPreviewWidget, QPrinter, QPrintPreviewDialog
-from PyQt5.QtGui import QPixmap, QImage, QPainter, QPageSize, QPen, QColor, QTextDocument, QCursor
-from PyQt5.QtCore import Qt, QUrl, QSize, QSizeF, QDate, QPointF, QRectF, QByteArray, QBuffer, QIODevice
+    QGridLayout, QGroupBox, QCheckBox, QTableWidget, QTableWidgetItem,
+    QSizePolicy, QListWidgetItem, QScrollArea, QListWidget,)
+
+from PyQt5.QtGui import QPixmap,QPainter, QPen, QColor
+from PyQt5.QtCore import Qt, QDate, QPointF,QByteArray, QBuffer, QIODevice
 from prints import PrintExportDialog 
 
 MEDIA_ROOT = os.path.join(os.getcwd(), 'media')  # The main folder
