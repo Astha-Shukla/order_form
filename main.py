@@ -942,25 +942,19 @@ class OrderForm(QWidget):
             self.items_container.removeRow(row)
             return
         
-        # --- NEW LOGIC FOR T-SHIRT FILTERING ---
+        # T-SHIRT FILTERING 
         fabric_text = self.cloth_combo.currentText().lower()
         
-        # Check if the item is a "Shirt" (or T-shirt, or any item where add-ons apply)
-        # Using "shirt" as the filter key (e.g., "Self Collar T-Shirt" -> contains "shirt")
         is_shirt_item = "shirt" in fabric_text 
         
         printing_add_on_per_unit = 0.0
         collar_add_on_per_unit = 0.0
 
         if is_shirt_item:
-            # ONLY include add-ons if it's a T-shirt/Shirt item
             printing_add_on_per_unit = self.get_total_printing_price()
             collar_add_on_per_unit = self.get_selected_collar_price()
         
-        # Base Unit Price + All Add-ons (if applicable) * Quantity
         total = (unit + printing_add_on_per_unit + collar_add_on_per_unit) * qty
-
-        # --- END OF NEW LOGIC --- * qty
 
         # Cloth
         item = QTableWidgetItem(self.cloth_combo.currentText())
