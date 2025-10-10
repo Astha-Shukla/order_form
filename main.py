@@ -611,7 +611,7 @@ class OrderForm(QWidget):
         )
 
         # Sub-options list
-        layout.addWidget(status_widget, 1, 1, 1, 2)
+        layout.addWidget(status_widget, 1, 0, 1, 3)
 
         # ===== Finally return parent =====
         return parent
