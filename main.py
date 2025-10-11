@@ -579,13 +579,14 @@ class OrderForm(QWidget):
         grid_button.addWidget(self.rb_vplus, 3, 0)
 
         layout.addWidget(sec_button,0,2)
+
         # ========== Track Pant Options (NEW SECTION) ==========
+
         sec_track = QGroupBox("Track Pant Options", parent)
         grid_track = QGridLayout(sec_track)
         sec_track.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         sec_track.setContentsMargins(20,0,20,0)
 
-        # Define the options, default prices, and a variable dict
         track_options = {
             'Dori': '0',
             '1 Piping': '2',
@@ -596,35 +597,26 @@ class OrderForm(QWidget):
 
         for idx, (key, default_price) in enumerate(track_options.items()):
             cb = QCheckBox(key)
-            # Create the price line edit
             price_edit = QLineEdit(default_price)
             price_edit.setStyleSheet(INPUT_STYLE)
             price_edit.setEnabled(False) # Start disabled
 
-            # Connect the checkbox to enable/disable the price input
             def toggle_track_price(state, entry=price_edit):
                 entry.setEnabled(state == Qt.Checked)
 
             cb.stateChanged.connect(toggle_track_price)
             self.track_vars[key] = (cb, price_edit)
 
-            # Add widgets to the grid
             grid_track.addWidget(cb, idx, 0)
             grid_track.addWidget(QLabel("Price"), idx, 1)
-            # The prompt mentioned a "small" price box and an "input box", 
-            # but in your other sections, you only have one QLineEdit for price. 
-            # I'll stick to one QLineEdit for the price, which is common practice.
             grid_track.addWidget(price_edit, idx, 2) 
 
-        # Add the new group box to the main layout at column 3
         layout.addWidget(sec_track, 0, 3) 
-    # =======================================================
-
 
         layout.setColumnStretch(0, 0)
         layout.setColumnStretch(1, 0)
         layout.setColumnStretch(2, 0)
-        layout.setColumnStretch(3, 0) # Set stretch to 0 for the new column as well
+        layout.setColumnStretch(3, 0) 
         layout.setColumnStretch(4, 1)
        
         # Status layout
