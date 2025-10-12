@@ -509,11 +509,11 @@ class OrderForm(QWidget):
 
         self.collar_var = "self"
         self.collar_price_self = QLineEdit("0")
-        self.collar_price_self.setFixedWidth(40)
+        self.collar_price_self.setFixedWidth(50)
         self.collar_price_rib = QLineEdit("10")
-        self.collar_price_rib.setFixedWidth(40)
+        self.collar_price_rib.setFixedWidth(50)
         self.collar_price_patti = QLineEdit("10")
-        self.collar_price_patti.setFixedWidth(40)
+        self.collar_price_patti.setFixedWidth(50)
 
         self.collar_cloth = QComboBox()
         self.collar_cloth.addItems(["Cotton", "Polyester", "Blended", "Other"])
@@ -604,15 +604,15 @@ class OrderForm(QWidget):
             cb = QCheckBox(key)
             price_edit = QLineEdit(default_price)
             price_edit.setStyleSheet(INPUT_STYLE)
-            price_edit.setEnabled(True) # Start disabled
-            price_edit.setFixedWidth(40)
+            price_edit.setEnabled(True) 
+            price_edit.setFixedWidth(50)
 
             # --- New Extra Input Box ---
             extra_edit = QLineEdit("")
-            extra_edit.setPlaceholderText("Detail")
+            extra_edit.setPlaceholderText("")
             extra_edit.setStyleSheet(INPUT_STYLE)
-            extra_edit.setFixedWidth(40)
-            extra_edit.setEnabled(True) # Start disabled
+            extra_edit.setFixedWidth(50)
+            extra_edit.setEnabled(True) 
 
             def toggle_track_price(state, entry=price_edit, extra=extra_edit):
                 entry.setEnabled(state == Qt.Checked)

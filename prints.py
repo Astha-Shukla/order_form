@@ -68,6 +68,34 @@ class PrintExportDialog(QDialog):
 
         return "".join(printing_options) or "<li>None Selected</li>"
     
+    def _get_parent_track_options(self):
+        parent = self.parent()
+        track_options_list = []
+        
+        if hasattr(parent, 'track_vars') and hasattr(parent, 'track_extra_vars'):
+            track_vars = getattr(parent, 'track_vars')
+            track_extra_vars = getattr(parent, 'track_extra_vars')
+            
+            # NOTE: This key list must match the keys used in _build_options_panel
+            keys = ['Dori', '1 Piping', '2 Piping', 'Other'] 
+            
+            for key in keys:
+                if key in track_vars:
+                    checkbox, price_edit = track_vars[key]
+                    extra_edit = track_extra_vars.get(key)
+                    
+                    if checkbox.isChecked():
+                        price = price_edit.text() if hasattr(price_edit, 'text') else "0"
+                        extra_detail = extra_edit.text() if extra_edit and hasattr(extra_edit, 'text') else ""
+                        
+                        option_text = checkbox.text().strip()
+                        
+                        detail_info = f" ({extra_detail})" if extra_detail else ""
+                        
+                        track_options_list.append(f"<li>✅ {option_text}{detail_info} (Price: {price} INR)</li>")
+
+        return "".join(track_options_list) or "<li>None Selected</li>"
+    
     def get_print_content(self):
 
         order_no = self._get_parent_text('order_number')
@@ -115,6 +143,8 @@ class PrintExportDialog(QDialog):
         button_options_list = "".join(f"<li>{opt}</li>" for opt in button_options) or "<li>None Selected (Default)</li>"
 
         printing_options_list = self._get_parent_printing_options()
+
+        track_pant_options_list = self._get_parent_track_options()
 
         if self.document_type == "QUOTATION":
             report_title = "Quotation / Estimate"   
@@ -197,22 +227,31 @@ class PrintExportDialog(QDialog):
                         </div>
                     </td>
 
-                    <td class="options-cell">
-                        <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Printing Options</h3>
-                        <ul style="list-style-type: none; padding-left: 10px; margin: 0 0 10px 0; font-size: 10pt;">
-                            {printing_options_list}
-                        </ul>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="width: 50%; vertical-align: top; padding-right: 10px;">
+                                <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Printing Options</h3>
+                                <ul style="list-style-type: disc; padding-left: 20px; margin: 0 0 10px 0; font-size: 10pt;">
+                                    {printing_options_list.replace('list-style-type: none;','')}
+                                </ul>
+            
+                                <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Collar Options</h3>
+                                <ul style="list-style-type: disc; padding-left: 20px; margin: 0 0 10px 0; font-size: 10pt;">
+                                    {collar_options_list.replace('list-style-type: none;','')}
+                                </ul>
+                                
+                                <h3 style="margin-top: 5px; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Button Options</h3>
+                                <ul style="list-style-type: disc; padding-left: 20px; margin: 0 0 0 0; font-size: 10pt;">
+                                    {button_options_list.replace('list-style-type: none;','')}
+                                </ul>
 
-                        <h3 style="margin-top: 5px; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Collar Options</h3>
-                        <ul style="list-style-type: none; padding-left: 10px; margin: 0 0 10px 0; font-size: 10pt;">
-                            {collar_options_list}
-                        </ul>
-                        
-                        <h3 style="margin-top: 5px; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Button Options</h3>
-                        <ul style="list-style-type: none; padding-left: 10px; margin: 0 0 10px 0; font-size: 10pt;">
-                            {button_options_list}
-                        </ul>
-                    </td>
+                                <h3 style="margin-top: 5px; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Track Pant Options</h3>
+                                <ul style="list-style-type: disc; padding-left: 20px; margin: 0 0 0 0; font-size: 10pt;">
+                                    {track_pant_options_list}
+                                </ul>
+                            </td>
+                        </tr>
+                    </table>
                 </tr>
             </table>
 
