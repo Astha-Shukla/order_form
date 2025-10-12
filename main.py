@@ -509,8 +509,12 @@ class OrderForm(QWidget):
 
         self.collar_var = "self"
         self.collar_price_self = QLineEdit("0")
+        self.collar_price_self.setFixedWidth(40)
         self.collar_price_rib = QLineEdit("10")
+        self.collar_price_rib.setFixedWidth(40)
         self.collar_price_patti = QLineEdit("10")
+        self.collar_price_patti.setFixedWidth(40)
+
         self.collar_cloth = QComboBox()
         self.collar_cloth.addItems(["Cotton", "Polyester", "Blended", "Other"])
         
@@ -594,22 +598,34 @@ class OrderForm(QWidget):
             'Other': '0'
         }
         self.track_vars = {}
+        self.track_extra_vars = {} 
 
         for idx, (key, default_price) in enumerate(track_options.items()):
             cb = QCheckBox(key)
             price_edit = QLineEdit(default_price)
             price_edit.setStyleSheet(INPUT_STYLE)
-            price_edit.setEnabled(False) # Start disabled
+            price_edit.setEnabled(True) # Start disabled
+            price_edit.setFixedWidth(40)
 
-            def toggle_track_price(state, entry=price_edit):
+            # --- New Extra Input Box ---
+            extra_edit = QLineEdit("")
+            extra_edit.setPlaceholderText("Detail")
+            extra_edit.setStyleSheet(INPUT_STYLE)
+            extra_edit.setFixedWidth(40)
+            extra_edit.setEnabled(True) # Start disabled
+
+            def toggle_track_price(state, entry=price_edit, extra=extra_edit):
                 entry.setEnabled(state == Qt.Checked)
+                extra.setEnabled(state == Qt.Checked)
 
             cb.stateChanged.connect(toggle_track_price)
             self.track_vars[key] = (cb, price_edit)
+            self.track_extra_vars[key] = extra_edit 
 
             grid_track.addWidget(cb, idx, 0)
             grid_track.addWidget(QLabel("Price"), idx, 1)
             grid_track.addWidget(price_edit, idx, 2) 
+            grid_track.addWidget(extra_edit, idx, 3)
 
         layout.addWidget(sec_track, 0, 3) 
 
@@ -643,43 +659,18 @@ class OrderForm(QWidget):
         # Main status combo
         self.status_combo = QComboBox()
         self.status_combo.addItem("Pending")
-        self.status_combo.addItem("Running")
+        self.status_combo.addItem("Cutting")
+        self.status_combo.addItem("Streching")
+        self.status_combo.addItem("Printing")
         self.status_combo.addItem("Completed")
-        self.status_combo.setFixedWidth(150)
+        self.status_combo.setFixedWidth(200)
         self.status_combo.setStyleSheet(COMBO_BOX_STYLE) 
         font = self.status_combo.font()
         font.setPointSize(11)
         self.status_combo.setFont(font)
         status_layout.addWidget(self.status_combo)
 
-        # Sub-options combo (initially hidden)
-        self.sub_combo = QComboBox()
-        self.sub_combo.addItems(["Cutting", "Streching", "Printing"])
-        self.sub_combo.setFixedWidth(200)
-        self.sub_combo.setStyleSheet(COMBO_BOX_STYLE) 
-        self.sub_combo.setVisible(False)
-        font = self.sub_combo.font()
-        font.setPointSize(11)
-        self.sub_combo.setFont(font)
-        status_layout.addWidget(self.sub_combo)
-
-        # Design Textbox
-        self.design_edit = QLineEdit()
-        self.design_edit.setPlaceholderText("Enter Design Details")
-        self.design_edit.setFixedWidth(400)
-        self.design_edit.setStyleSheet(INPUT_STYLE) 
-        font = self.design_edit.font()
-        font.setPointSize(11)
-        self.design_edit.setFont(font)
-        status_layout.addWidget(QLabel("Design:")) 
-        status_layout.addWidget(self.design_edit)
-
         status_layout.addStretch()
-
-        # Connect main combo to show/hide sub-combo
-        self.status_combo.currentTextChanged.connect(
-            lambda value: self.sub_combo.setVisible(value == "Running")
-        )
 
         # Sub-options list
         layout.addWidget(status_widget, 1, 0, 1, 4)
@@ -931,7 +922,7 @@ class OrderForm(QWidget):
         group_layout.addSpacing(20)
 
         group_layout.addLayout(all_layout)
-         # --- Table aligned exactly under inputs ---
+         # Table aligned exactly under inputs
         self.items_container = QTableWidget()
         # self.items_container.setStyleSheet("QTableWidget { background-color: #f9f9f9; }")
         self.items_container.setColumnCount(7)
@@ -1006,17 +997,23 @@ class OrderForm(QWidget):
         type_text = self.type_combo.currentText().lower() 
         
         is_shirt_item = "t-shirt" in type_text 
+        is_pant_item = "track-pant" in type_text or "shorts" in type_text
         
         printing_add_on_per_unit = 0.0
         collar_add_on_per_unit = 0.0
+        track_add_on_per_unit = 0.0 
 
         if is_shirt_item:
             printing_add_on_per_unit = self.get_total_printing_price()
             collar_add_on_per_unit = self.get_selected_collar_price()
-        
-        total = (unit + printing_add_on_per_unit + collar_add_on_per_unit) * qty
 
-        # Cloth
+        elif is_pant_item:
+            track_add_on_per_unit = self.get_total_track_options_price()
+        
+        add_ons = printing_add_on_per_unit + collar_add_on_per_unit + track_add_on_per_unit
+        total = (unit + add_ons) * qty
+
+        # Fabric
         item = QTableWidgetItem(self.cloth_combo.currentText())
         item.setTextAlignment(Qt.AlignCenter)
         self.items_container.setItem(row, 0, item)
@@ -1054,8 +1051,13 @@ class OrderForm(QWidget):
         self.items_container.setItem(row, 7, item_print)       
         item_collar = QTableWidgetItem(f"{collar_add_on_per_unit:.2f}")
         self.items_container.setItem(row, 8, item_collar)
+        # NEW: Track Add-on (Hidden Column 9)
+        item_track = QTableWidgetItem(f"{track_add_on_per_unit:.2f}")
+        self.items_container.setItem(row, 9, item_track)
+
         self.items_container.setColumnHidden(7, True)
         self.items_container.setColumnHidden(8, True)
+        self.items_container.setColumnHidden(9, True) 
         self._update_grand_total()
 
     def get_total_printing_price(self):
@@ -1086,6 +1088,20 @@ class OrderForm(QWidget):
             print(f"Warning: Invalid price found for {collar_type} collar.")
             pass # Price remains 0.0 if conversion fails
         return collar_price
+    
+    def get_total_track_options_price(self):
+        """Calculates the sum of prices for all selected Track Pant options (per unit)."""
+        total_track_price = 0.0
+        # self.track_vars stores (checkbox, price_edit) for each track option
+        for key, (checkbox, price_edit) in self.track_vars.items():
+            if checkbox.isChecked():
+                try:
+                    price = float(price_edit.text())
+                    total_track_price += price
+                except ValueError:
+                    print(f"Warning: Invalid price found for Track Option: {key}.")
+                    continue
+        return total_track_price
 
     def _calculate_item_total_price(self, unit_price, qty, printing_add_on_per_unit, collar_add_on_per_unit):        
         # Add-on prices are per unit
@@ -1102,21 +1118,26 @@ class OrderForm(QWidget):
             unit_price_item = self.items_container.item(row, 5) 
             qty_item = self.items_container.item(row, 4) 
             print_add_on_item = self.items_container.item(row, 7) 
-            collar_add_on_item = self.items_container.item(row, 8) 
+            collar_add_on_item = self.items_container.item(row, 8)
+            track_add_on_item = self.items_container.item(row, 9) 
 
-            if unit_price_item and qty_item and print_add_on_item and collar_add_on_item:
+            if unit_price_item and qty_item and print_add_on_item and collar_add_on_item and track_add_on_item:
                 try:
                     unit_price = float(unit_price_item.text())
                     qty = int(qty_item.text())
                     printing_add_on_per_unit = float(print_add_on_item.text())
                     collar_add_on_per_unit = float(collar_add_on_item.text())
-                    new_total_price = self._calculate_item_total_price(unit_price, qty, printing_add_on_per_unit, collar_add_on_per_unit)
+                    track_add_on_per_unit = float(track_add_on_item.text())
+
+                    new_total_price = (unit_price + printing_add_on_per_unit + collar_add_on_per_unit + track_add_on_per_unit) * qty
                     total_price_item = self.items_container.item(row, 6)
                     if not total_price_item:
                         total_price_item = QTableWidgetItem()
                         self.items_container.setItem(row, 6, total_price_item)
-                        total_price_item.setText(f"{new_total_price:.2f}") 
-                        total_price_item.setTextAlignment(Qt.AlignCenter) 
+                        
+                    total_price_item.setText(f"{new_total_price:.2f}") 
+                    total_price_item.setTextAlignment(Qt.AlignCenter) 
+
                 except ValueError:
                     continue 
         self._update_grand_total()
