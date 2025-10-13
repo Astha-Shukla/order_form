@@ -1047,16 +1047,60 @@ class OrderForm(QWidget):
         data["Qty"] = get_safe_text(self.items_container, row, 4)
         data["Unit"] = get_safe_text(self.items_container, row, 5)
         data["Status"] = get_safe_text(self.items_container, row, 7)
+
+        data["Total"] = get_safe_text(self.items_container, row, 6)
+    
+        # NEW: Hidden Add-ons (Columns 9, 10, 11) - Useful for a detailed view
+        data["PrintAddOn"] = get_safe_text(self.items_container, row, 9)
+        data["CollarAddOn"] = get_safe_text(self.items_container, row, 10)
+        data["TrackAddOn"] = get_safe_text(self.items_container, row, 11)
         
         return data
-
+    
+    @staticmethod
+    def _set_dialog_read_only(dialog, is_read_only=True):
+        for widget in [dialog.color_input, dialog.qty_input, dialog.price_input]:
+            if isinstance(widget, QLineEdit):
+                widget.setReadOnly(is_read_only)
+        
+        for combo in [dialog.cloth_combo, dialog.type_combo, dialog.size_combo, dialog.status_combo]:
+            if isinstance(combo, QComboBox):
+                combo.setDisabled(is_read_only) 
+                
+        if is_read_only:
+             # Disconnect any existing 'accepted' connections first to ensure the new one works cleanly
+            try:
+                 dialog.accepted.disconnect() 
+            except TypeError:
+                pass # Ignore if nothing is connected
+            dialog.accepted.connect(dialog.reject) # Makes the 'OK/Done' button behave like 'Close'
+             
+            
     def _view_item(self, row):
         print(f"Viewing details for item at row: {row}")
+
+        current_data = self._get_row_data(row)
+        
+        dialog = ItemInputDialog(self)
+        dialog.setWindowTitle("View an Item") 
+        
+        dialog.cloth_combo.setCurrentText(current_data["Fabric"])
+        dialog.type_combo.setCurrentText(current_data["Type"])
+        dialog.color_input.setText(current_data["Color"])
+        dialog.size_combo.setCurrentText(current_data["Size"])
+        dialog.qty_input.setText(current_data["Qty"])
+        dialog.price_input.setText(current_data["Unit"])
+        dialog.status_combo.setCurrentText(current_data["Status"])
+        
+        self._set_dialog_read_only(dialog, is_read_only=True)
+        
+        dialog.exec_()
 
     def _edit_item(self, row):        
         current_data = self._get_row_data(row)
         
         dialog = ItemInputDialog(self)
+        dialog.setWindowTitle("Edit an Item") 
         
         dialog.cloth_combo.setCurrentText(current_data["Fabric"])
         dialog.type_combo.setCurrentText(current_data["Type"])
