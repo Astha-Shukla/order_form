@@ -605,13 +605,13 @@ class OrderForm(QWidget):
             price_edit = QLineEdit(default_price)
             price_edit.setStyleSheet(INPUT_STYLE)
             price_edit.setEnabled(True) 
-            price_edit.setFixedWidth(50)
+            price_edit.setFixedWidth(60)
 
             # --- New Extra Input Box ---
             extra_edit = QLineEdit("")
             extra_edit.setPlaceholderText("")
             extra_edit.setStyleSheet(INPUT_STYLE)
-            extra_edit.setFixedWidth(50)
+            extra_edit.setFixedWidth(60)
             extra_edit.setEnabled(True) 
 
             def toggle_track_price(state, entry=price_edit, extra=extra_edit):
