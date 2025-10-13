@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
     QDateEdit, QToolButton, QComboBox, QDoubleSpinBox, QGraphicsView,
     QGraphicsScene, QGraphicsPixmapItem, QGraphicsProxyWidget, QFrame, 
     QGridLayout, QGroupBox, QCheckBox, QTableWidget, QTableWidgetItem,
-    QSizePolicy, QListWidgetItem, QScrollArea, QListWidget,)
+    QSizePolicy, QListWidgetItem, QScrollArea, QListWidget, QMessageBox)
 
 from PyQt5.QtGui import QPixmap,QPainter, QPen, QColor
 from PyQt5.QtCore import Qt, QDate, QPointF,QByteArray, QBuffer, QIODevice
@@ -64,6 +64,118 @@ class ImageGalleryWindow(QDialog):
                     if col >= col_count:
                         col = 0
                         row += 1
+
+class ItemInputDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Add New Item")
+
+        self.setMinimumSize(1400, 300) 
+        
+        # Main layout is Vertical
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(20)
+        
+        # --- Helper function for label + widget (re-used logic) ---
+        def create_field_layout(label_text, widget, input_width=120):
+            field_layout = QHBoxLayout()
+            field_layout.setSpacing(5)
+            field_layout.setContentsMargins(0, 0, 0, 0)
+            
+            lbl = QLabel(label_text)
+            lbl.setFixedWidth(65) # Fixed label width for alignment
+            widget.setFixedWidth(input_width) # Fixed widget width
+
+            widget.setStyleSheet("""
+                QLineEdit, QComboBox {
+                    border: 1px solid #000000; /* Solid Black Border */
+                    border-radius: 0px;      /* Sharp corners */
+                    padding: 2px;
+                }
+            """)
+            
+            field_layout.addWidget(lbl)
+            field_layout.addWidget(widget)
+            
+            container = QWidget()
+            container.setLayout(field_layout)
+            return container # Return the widget container
+            
+        # --- Row 1 Layout (Horizontal) ---
+        single_row_layout = QHBoxLayout()
+        single_row_layout.setSpacing(30)
+        
+        # Fabric
+        self.cloth_combo = QComboBox()
+        self.cloth_combo.addItems(["Cotton", "Platted", "Jabro"])
+        single_row_layout.addWidget(create_field_layout("Fabric:", self.cloth_combo))
+        
+        # Type
+        self.type_combo = QComboBox()
+        self.type_combo.addItems(["T-shirt", "Track-pant", "Shorts"])
+        single_row_layout.addWidget(create_field_layout("Type:", self.type_combo))
+
+        # Color
+        self.color_input = QLineEdit("red")
+        single_row_layout.addWidget(create_field_layout("Color:", self.color_input, 100))
+        
+        # Size
+        self.size_combo = QComboBox()
+        self.size_combo.addItems(["S", "M", "L", "XL", "XXL"])
+        single_row_layout.addWidget(create_field_layout("Size:", self.size_combo, 70))
+
+        # 5. Quantity
+        self.qty_input = QLineEdit("1")
+        single_row_layout.addWidget(create_field_layout("QTY:", self.qty_input, 70)) # Smaller width
+        
+        # 6. Unit Price
+        self.price_input = QLineEdit("200")
+        single_row_layout.addWidget(create_field_layout("Unit Price:", self.price_input, 80)) # Smaller width
+        
+        # 7. Status Field
+        self.status_combo = QComboBox()
+        self.status_combo.addItems(["Pending", "Cutting", "Stretching", "Printing", "Completed"])
+        single_row_layout.addWidget(create_field_layout("Status:", self.status_combo, 120))
+
+        single_row_layout.addStretch(1) # Pushes everything to the left
+        main_layout.addLayout(single_row_layout)
+        
+        # --- Done Button Layout ---
+        main_layout.addSpacing(20)
+        self.done_button = QPushButton("Done")
+        self.done_button.setFixedWidth(120)
+
+        self.done_button.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #000000; 
+                border-radius: 0px;
+                padding: 5px; 
+                background-color: #f0f0f0; 
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0; 
+            }
+        """)
+        self.done_button.clicked.connect(self.accept) 
+        
+        done_layout = QHBoxLayout()
+        done_layout.addStretch(1) # Push button to the right
+        done_layout.addWidget(self.done_button)
+        done_layout.addStretch(1) # Center the button
+
+        main_layout.addLayout(done_layout)
+        
+    # Method to easily retrieve all data (Remains the same)
+    def get_data(self):
+        return {
+            "Fabric": self.cloth_combo.currentText(),
+            "Type": self.type_combo.currentText(),
+            "Color": self.color_input.text(),
+            "Size": self.size_combo.currentText(),
+            "Qty": self.qty_input.text(),
+            "Unit": self.price_input.text(),
+            "Status": self.status_combo.currentText(),
+        }
 
 class OrderForm(QWidget):
     def __init__(self):
@@ -839,126 +951,63 @@ class OrderForm(QWidget):
     def create_item_selection_box(self):
         group_box = QGroupBox("Item Selection")
         group_box.setFixedWidth(1700)
-    
         group_box.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-         
-    
+        
         group_layout = QVBoxLayout()
         group_box.setLayout(group_layout)
 
-        all_layout = QHBoxLayout()
-        all_layout.setSpacing(100)
-
-        # ---- Helper function for label + widget ----
-        def add_field(label_text, widget, width=None):
-            layout = QHBoxLayout()
-            layout.setSpacing(15)
-            layout.setContentsMargins(0, 0, 0, 0)
-
-            lbl = QLabel(label_text)
-            lbl.setFixedWidth(65)
-
-            lbl.setStyleSheet("""
-                QLabel {
-                    border: none;
-                    border-radius: 0px;
-                    padding: 3px 6px;
-                    background-color: #f9f9f9;
-                }
-            """)
-            widget.setStyleSheet("""
-                QLineEdit, QComboBox{
-                    border: 1px solid black;
-                    border-radius: 0;
-                    padding: 3px 6px;
-                    background-color: #f9f9f9;
-                }
-            """)
-           
-            layout.addWidget(lbl)
-
-            if width:
-                widget.setFixedWidth(width)
-            layout.addWidget(widget)
-           
-            all_layout.addLayout(layout)
-      
-        # Fabric
-        self.cloth_combo = QComboBox()
-        self.cloth_combo.addItems(["Cotton", "Platted", "Jabro"])
-        add_field("Fabric:", self.cloth_combo, 195)
+        top_layout = QHBoxLayout()
+        top_layout.setSpacing(100)
+        top_layout.setContentsMargins(0, 0, 0, 0)
         
-
-        # Type
-        self.type_combo = QComboBox()
-        self.type_combo.addItems(["T-shirt", "Track-pant", "Shorts"])
-        add_field("Type:", self.type_combo, 195)
-
-        # Color
-        self.color_combo = QLineEdit("red")
-        # self.color_combo.addItems(["Red", "Blue", "Green"])
-        add_field("Color:", self.color_combo, 100)
-
-        # Size
-        self.size_combo = QComboBox()
-        self.size_combo.addItems(["S", "M", "L", "XL", "XXL"])
-        add_field("Size:", self.size_combo, 100)
-
-        # Quantity
-        self.qty_input = QLineEdit("1")
-        add_field("QTY:", self.qty_input, 60)
-       
-         
-        #  price.unit
-        self.price_input=QLineEdit("200")
-        add_field("Unit:", self.price_input, 60)
-        
-        # Add Row Button
         self.add_button = QPushButton("+Add")
-        self.add_button.setStyleSheet("background-color:#87CEFA;")
+        self.add_button.setStyleSheet("background-color:#87CEFA; min-width: 100px;")
         self.add_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed) 
-        self.add_button.clicked.connect(self._add_item_row)
-        all_layout.addWidget(self.add_button,0,Qt.AlignLeft)
-        group_layout.addSpacing(20)
-
-        group_layout.addLayout(all_layout)
-         # Table aligned exactly under inputs
+        self.add_button.clicked.connect(self._open_add_item_dialog) 
+        
+        top_layout.addStretch(1) 
+        top_layout.addWidget(self.add_button)
+        top_layout.addStretch(1)
+        
+        group_layout.addSpacing(10)
+        group_layout.addLayout(top_layout)
+        
         self.items_container = QTableWidget()
-        # self.items_container.setStyleSheet("QTableWidget { background-color: #f9f9f9; }")
-        self.items_container.setColumnCount(7)
-        # Table background aur border
+        self.items_container.setColumnCount(12) 
+        
         self.items_container.setStyleSheet("""
         QTableWidget {
-            gridline-color: gray;  /* cells ke beech line */
-            border: 0px solid black; /* table ke outer border */
+            gridline-color: gray; 
+            border: 0px solid black; 
         }
         QTableWidget::item {
             border: 0.5px solid gray;
-            background-color: #ffffff;                                  /* cell borders */
+            background-color: #ffffff; 
         }
         QHeaderView::section {
             background-color:: gray; 
-            border: 0.5px solid #000000;   /* header borders */
+            border: 0.5px solid #000000;
             padding: 3px;
-            font-weight: normal;         /* header text bold */
-            text-align: center;        /* header text center */
+            font-weight: normal; 
+            text-align: center;
         }
         """)
         
         self.items_container.setHorizontalHeaderLabels(
-            ["Fabric", "Type", "Color", "Size", "Qty", "Unit", "Total price"]
+            ["Fabric", "Type", "Color", "Size", "Qty", "Unit", "Total price", "Status", "Action"]
         )
         self.items_container.verticalHeader().setVisible(False)
         self.items_container.setFixedHeight(200)
 
-        # Align column widths exactly like inputs above
-        self.items_container.setColumnWidth(0, 300)  # Cloth
-        self.items_container.setColumnWidth(1, 350)  # Type
-        self.items_container.setColumnWidth(2, 200)  # Color
-        self.items_container.setColumnWidth(3, 150)   # Size
-        self.items_container.setColumnWidth(4, 150)   # Qty
-        self.items_container.setColumnWidth(5, 200)   # Unit
-        self.items_container.setColumnWidth(6, 200)   # Total
+        self.items_container.setColumnWidth(0, 180)  # Fabric
+        self.items_container.setColumnWidth(1, 200)  # Type
+        self.items_container.setColumnWidth(2, 150)  # Color
+        self.items_container.setColumnWidth(3, 100)  # Size
+        self.items_container.setColumnWidth(4, 100)  # Qty
+        self.items_container.setColumnWidth(5, 120)  # Unit
+        self.items_container.setColumnWidth(6, 150)  # Total
+        self.items_container.setColumnWidth(7, 180)  # NEW: Status
+        self.items_container.setColumnWidth(8, 300)  # NEW: Action (for 3 buttons)
 
         group_layout.addWidget(self.items_container)
        
@@ -980,25 +1029,132 @@ class OrderForm(QWidget):
         group_layout.addLayout(grand_total_layout)
         return group_box
     
+    def _get_row_data(self, row):
+        data = {}
+        def get_safe_text(container, r, c):
+            # Retrieve the QTableWidgetItem or None
+            item = container.item(r, c)
+            # Return the text if the item exists, otherwise return an empty string
+            return item.text() if item is not None else ""
         
-    def _add_item_row(self):
+        data["Fabric"] = get_safe_text(self.items_container, row, 0)
+        data["Type"] = get_safe_text(self.items_container, row, 1)
+        data["Color"] = get_safe_text(self.items_container, row, 2)
+        data["Size"] = get_safe_text(self.items_container, row, 3)
+        data["Qty"] = get_safe_text(self.items_container, row, 4)
+        data["Unit"] = get_safe_text(self.items_container, row, 5)
+        data["Status"] = get_safe_text(self.items_container, row, 7)
+        
+        return data
+
+    def _view_item(self, row):
+        print(f"Viewing details for item at row: {row}")
+
+    def _edit_item(self, row):        
+        current_data = self._get_row_data(row)
+        
+        dialog = ItemInputDialog(self)
+        
+        dialog.cloth_combo.setCurrentText(current_data["Fabric"])
+        dialog.type_combo.setCurrentText(current_data["Type"])
+        dialog.color_input.setText(current_data["Color"])
+        dialog.size_combo.setCurrentText(current_data["Size"])
+        dialog.qty_input.setText(current_data["Qty"])
+        dialog.price_input.setText(current_data["Unit"])
+        dialog.status_combo.setCurrentText(current_data["Status"])
+        
+        if dialog.exec_() == QDialog.Accepted:
+            new_data = dialog.get_data()
+            self._update_item_row(row, new_data)
+
+    def _update_item_row(self, row, data):
+        try:
+            qty = int(data["Qty"])
+            unit = float(data["Unit"])
+        except ValueError:
+            print("Error: Quantity or Unit Price must be valid numbers. Update cancelled.")
+            return
+        
+        type_text = data["Type"].lower()
+        is_shirt_item = "t-shirt" in type_text 
+        is_pant_item = "track-pant" in type_text or "shorts" in type_text
+                
+        printing_add_on_per_unit = 0.0
+        collar_add_on_per_unit = 0.0
+        track_add_on_per_unit = 0.0
+        
+        if is_shirt_item:
+            printing_add_on_per_unit = self.get_total_printing_price()
+            collar_add_on_per_unit = self.get_selected_collar_price()
+            
+        elif is_pant_item:
+            track_add_on_per_unit = self.get_total_track_options_price()
+                    
+        add_ons = printing_add_on_per_unit + collar_add_on_per_unit + track_add_on_per_unit
+        total = (unit + add_ons) * qty
+
+        def safe_set_item(table, r, c, text):
+            item = table.item(r, c)
+            if item is None:
+                item = QTableWidgetItem(text)
+                table.setItem(r, c, item)
+            else:
+                item.setText(text)
+            return item
+
+        safe_set_item(self.items_container, row, 0, data["Fabric"])
+        safe_set_item(self.items_container, row, 1, data["Type"])
+        safe_set_item(self.items_container, row, 2, data["Color"])
+        safe_set_item(self.items_container, row, 3, data["Size"])
+        safe_set_item(self.items_container, row, 4, str(qty))
+        safe_set_item(self.items_container, row, 5, f"{unit:.2f}")
+        safe_set_item(self.items_container, row, 6, f"{total:.2f}") 
+        safe_set_item(self.items_container, row, 7, data["Status"])
+        
+        # Columns 9-11 (Hidden add-ons data)
+        safe_set_item(self.items_container, row, 9, f"{printing_add_on_per_unit:.2f}")
+        safe_set_item(self.items_container, row, 10, f"{collar_add_on_per_unit:.2f}")
+        safe_set_item(self.items_container, row, 11, f"{track_add_on_per_unit:.2f}")
+
+        for col in range(8): 
+            item = self.items_container.item(row, col)
+            if item:
+                item.setTextAlignment(Qt.AlignCenter)
+        self._update_grand_total()
+
+    def _delete_item(self, row):
+        reply = QMessageBox.question(self, 'Confirm Delete',
+            f"Are you sure you want to delete the item at row {row}?", 
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            self.items_container.removeRow(row)
+            self._update_grand_total()
+            print(f"Item at row {row} deleted.")
+    
+    def _open_add_item_dialog(self):
+        dialog = ItemInputDialog(self)
+        if dialog.exec_() == QDialog.Accepted:
+            item_data = dialog.get_data()
+            self._add_item_row(item_data)
+    
+    def _add_item_row(self, data):
         row = self.items_container.rowCount()
         self.items_container.insertRow(row)
 
         try:
-            qty = int(self.qty_input.text())
-            unit = float(self.price_input.text())
+            qty = int(data["Qty"])
+            unit = float(data["Unit"])
         except ValueError:
             print("Error: Quantity or Unit Price must be valid numbers.")
             self.items_container.removeRow(row)
             return
         
-        # T-SHIRT FILTERING 
-        type_text = self.type_combo.currentText().lower() 
-        
+        # T-SHIRT FILTERING (Kept as is for add-on logic)
+        type_text = data["Type"].lower() 
         is_shirt_item = "t-shirt" in type_text 
         is_pant_item = "track-pant" in type_text or "shorts" in type_text
-        
+
         printing_add_on_per_unit = 0.0
         collar_add_on_per_unit = 0.0
         track_add_on_per_unit = 0.0 
@@ -1014,22 +1170,22 @@ class OrderForm(QWidget):
         total = (unit + add_ons) * qty
 
         # Fabric
-        item = QTableWidgetItem(self.cloth_combo.currentText())
+        item = QTableWidgetItem(data["Fabric"])
         item.setTextAlignment(Qt.AlignCenter)
         self.items_container.setItem(row, 0, item)
 
         # Type
-        item = QTableWidgetItem(self.type_combo.currentText())
+        item = QTableWidgetItem(data["Type"])
         item.setTextAlignment(Qt.AlignCenter)
         self.items_container.setItem(row, 1, item)
 
         # Color
-        item = QTableWidgetItem(self.color_combo.text())
+        item = QTableWidgetItem(data["Color"])
         item.setTextAlignment(Qt.AlignCenter)
         self.items_container.setItem(row, 2, item)
 
         # Size
-        item = QTableWidgetItem(self.size_combo.currentText())
+        item = QTableWidgetItem(data["Size"])
         item.setTextAlignment(Qt.AlignCenter)
         self.items_container.setItem(row, 3, item)
 
@@ -1047,21 +1203,47 @@ class OrderForm(QWidget):
         item = QTableWidgetItem(f"{total:.2f}")
         item.setTextAlignment(Qt.AlignCenter)
         self.items_container.setItem(row, 6, item)
-        item_print = QTableWidgetItem(f"{printing_add_on_per_unit:.2f}")
-        self.items_container.setItem(row, 7, item_print)       
-        item_collar = QTableWidgetItem(f"{collar_add_on_per_unit:.2f}")
-        self.items_container.setItem(row, 8, item_collar)
-        # NEW: Track Add-on (Hidden Column 9)
-        item_track = QTableWidgetItem(f"{track_add_on_per_unit:.2f}")
-        self.items_container.setItem(row, 9, item_track)
 
-        self.items_container.setColumnHidden(7, True)
-        self.items_container.setColumnHidden(8, True)
-        self.items_container.setColumnHidden(9, True) 
+        # Status
+        item = QTableWidgetItem(data["Status"])
+        item.setTextAlignment(Qt.AlignCenter)
+        self.items_container.setItem(row, 7, item)
+
+        # Action Buttons
+        action_widget = QWidget()
+        action_layout = QHBoxLayout(action_widget)
+        action_layout.setContentsMargins(5, 0, 5, 0)
+        action_layout.setSpacing(5) 
+        
+        view_btn = QPushButton("👁️ View")
+        edit_btn = QPushButton("✏️ Edit")
+        delete_btn = QPushButton("🗑️ Delete")
+        
+        view_btn.clicked.connect(lambda checked, r=row: self._view_item(r))
+        edit_btn.clicked.connect(lambda checked, r=row: self._edit_item(r))
+        delete_btn.clicked.connect(lambda checked, r=row: self._delete_item(r))
+
+        action_layout.addWidget(view_btn)
+        action_layout.addWidget(edit_btn)
+        action_layout.addWidget(delete_btn)
+
+        self.items_container.setCellWidget(row, 8, action_widget)
+
+        item_print = QTableWidgetItem(f"{printing_add_on_per_unit:.2f}")
+        self.items_container.setItem(row, 9, item_print) 
+
+        item_collar = QTableWidgetItem(f"{collar_add_on_per_unit:.2f}")
+        self.items_container.setItem(row, 10, item_collar)
+
+        item_track = QTableWidgetItem(f"{track_add_on_per_unit:.2f}")
+        self.items_container.setItem(row, 11, item_track)
+
+        self.items_container.setColumnHidden(9, True)
+        self.items_container.setColumnHidden(10, True)
+        self.items_container.setColumnHidden(11, True) 
         self._update_grand_total()
 
     def get_total_printing_price(self):
-        """Calculates the sum of prices for all selected printing options (per unit)."""
         total_print_price = 0.0
         for key, (checkbox, price_edit) in self.print_vars.items():
             if checkbox.isChecked():
@@ -1074,25 +1256,25 @@ class OrderForm(QWidget):
         return total_print_price
 
     def get_selected_collar_price(self):
-        """Returns the price of the currently selected collar option (per unit)."""
-        collar_type = self.collar_var  # 'self', 'rib', or 'patti'
         collar_price = 0.0
         try:
-            if collar_type == "self":
+            if self.rb_self.isChecked():
                 collar_price = float(self.collar_price_self.text())
-            elif collar_type == "rib":
+
+            elif self.rb_rib.isChecked():
                 collar_price = float(self.collar_price_rib.text())
-            elif collar_type == "patti":
+
+            elif self.rb_patti.isChecked():
                 collar_price = float(self.collar_price_patti.text())
-        except ValueError:
-            print(f"Warning: Invalid price found for {collar_type} collar.")
-            pass # Price remains 0.0 if conversion fails
+
+        except (ValueError, AttributeError):
+            print("Warning: Invalid price found for selected collar option. Using price of 0.0.")
+            collar_price = 0.0 
+
         return collar_price
     
     def get_total_track_options_price(self):
-        """Calculates the sum of prices for all selected Track Pant options (per unit)."""
         total_track_price = 0.0
-        # self.track_vars stores (checkbox, price_edit) for each track option
         for key, (checkbox, price_edit) in self.track_vars.items():
             if checkbox.isChecked():
                 try:
@@ -1104,7 +1286,6 @@ class OrderForm(QWidget):
         return total_track_price
 
     def _calculate_item_total_price(self, unit_price, qty, printing_add_on_per_unit, collar_add_on_per_unit):        
-        # Add-on prices are per unit
         printing_add_on_per_unit = self.get_total_printing_price()
         collar_add_on_per_unit = self.get_selected_collar_price()       
         total = (unit_price + printing_add_on_per_unit + collar_add_on_per_unit) * qty
@@ -1117,9 +1298,9 @@ class OrderForm(QWidget):
         for row in range(self.items_container.rowCount()):
             unit_price_item = self.items_container.item(row, 5) 
             qty_item = self.items_container.item(row, 4) 
-            print_add_on_item = self.items_container.item(row, 7) 
-            collar_add_on_item = self.items_container.item(row, 8)
-            track_add_on_item = self.items_container.item(row, 9) 
+            print_add_on_item = self.items_container.item(row, 9) 
+            collar_add_on_item = self.items_container.item(row, 10)
+            track_add_on_item = self.items_container.item(row, 11) 
 
             if unit_price_item and qty_item and print_add_on_item and collar_add_on_item and track_add_on_item:
                 try:
@@ -1130,6 +1311,7 @@ class OrderForm(QWidget):
                     track_add_on_per_unit = float(track_add_on_item.text())
 
                     new_total_price = (unit_price + printing_add_on_per_unit + collar_add_on_per_unit + track_add_on_per_unit) * qty
+
                     total_price_item = self.items_container.item(row, 6)
                     if not total_price_item:
                         total_price_item = QTableWidgetItem()
@@ -1302,16 +1484,13 @@ class OrderForm(QWidget):
         self.search_window.show()
 
     def _generate_item_table_html(self):
-        """Generates the HTML string for the item table from the QTableWidget."""
         
         table = self.items_container 
         if table.rowCount() == 0:
             return "<p>No items added to the order.</p>"
         
         html = '<table class="item-table">\n'
-        # 2. Add Header Row (Read headers directly from the table)
         header_labels = []
-        # Loop over the table's horizontal header labels
         for col in range(table.columnCount()):
             header_item = table.horizontalHeaderItem(col)
             if header_item is not None:
@@ -1321,12 +1500,10 @@ class OrderForm(QWidget):
         
         html += '<tr><th>Fabric</th><th>Type</th><th>Color</th><th>Size</th><th>Qty</th><th>Unit Price</th><th>Total Price</th></tr>\n'
         
-        # 3. Add Data Rows (Iterate through the actual table data)
         for row in range(table.rowCount()):
             html += '<tr>'
             for col in range(table.columnCount()):
                 item = table.item(row, col)
-                # Check if the cell item exists, otherwise use an empty string
                 text = item.text() if item is not None else ""
                 html += f'<td>{text}</td>'
             html += '</tr>\n'
@@ -1340,12 +1517,9 @@ class OrderForm(QWidget):
         dialog = PrintExportDialog(content_data=item_table_html, parent=self)
         dialog.exec_()
     def _capture_canvas_as_base64(self):
-        """Captures the QGraphicsView/Scene content and returns a Base64 URI."""
-        # Assuming your QGraphicsView is named 'self.canvas' and QGraphicsScene is 'self.scene'
         if not hasattr(self, 'canvas') or not self.canvas:
             return ""
 
-        # Use the size of the canvas view
         pixmap = QPixmap(self.canvas.size())
         pixmap.fill(Qt.white) # Ensure white background
 
