@@ -1169,15 +1169,26 @@ class OrderForm(QWidget):
                 item.setTextAlignment(Qt.AlignCenter)
         self._update_grand_total()
 
-    def _delete_item(self, row):
+    def _delete_item(self): 
+        button = self.sender()
+        if not isinstance(button, QPushButton):
+            return
+        action_widget = button.parentWidget() 
+        row_to_delete = -1
+        for r in range(self.items_container.rowCount()):
+            if self.items_container.cellWidget(r, 8) == action_widget:
+                row_to_delete = r
+                break        
+        if row_to_delete == -1:
+            print("Error: Could not determine row for delete action.")
+            return    
         reply = QMessageBox.question(self, 'Confirm Delete',
-            f"Are you sure you want to delete the item at row {row}?", 
+            f"Are you sure you want to delete the item at row {row_to_delete}?", 
             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-
         if reply == QMessageBox.Yes:
-            self.items_container.removeRow(row)
+            self.items_container.removeRow(row_to_delete)
             self._update_grand_total()
-            print(f"Item at row {row} deleted.")
+            print(f"Item at row {row_to_delete} deleted.")
     
     def _open_add_item_dialog(self):
         dialog = ItemInputDialog(self)
@@ -1268,7 +1279,7 @@ class OrderForm(QWidget):
         
         view_btn.clicked.connect(lambda checked, r=row: self._view_item(r))
         edit_btn.clicked.connect(lambda checked, r=row: self._edit_item(r))
-        delete_btn.clicked.connect(lambda checked, r=row: self._delete_item(r))
+        delete_btn.clicked.connect(self._delete_item)
 
         action_layout.addWidget(view_btn)
         action_layout.addWidget(edit_btn)
