@@ -1008,7 +1008,10 @@ class OrderForm(QWidget):
         self.items_container.setColumnWidth(6, 150)  # Total
         self.items_container.setColumnWidth(7, 180)  # NEW: Status
         self.items_container.setColumnWidth(8, 300)  # NEW: Action (for 3 buttons)
-
+        # --- NEW FIX: Hide the three internal add-on columns (9, 10, 11) ---
+        self.items_container.setColumnHidden(9, True)
+        self.items_container.setColumnHidden(10, True)
+        self.items_container.setColumnHidden(11, True)
         group_layout.addWidget(self.items_container)
        
         # --- Grand Total Label ---
