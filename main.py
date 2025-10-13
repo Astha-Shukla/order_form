@@ -70,7 +70,7 @@ class ItemInputDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Add New Item")
 
-        self.setMinimumSize(1650, 350) 
+        self.setMinimumSize(1820, 350) 
         
         # Main layout is Vertical
         main_layout = QVBoxLayout(self)
@@ -139,7 +139,21 @@ class ItemInputDialog(QDialog):
 
         # 8. Barcode Field
         self.barcode_input = QLineEdit()
-        single_row_layout.addWidget(create_field_layout("Barcode:", self.barcode_input, 150))
+        barcode_field_widget = create_field_layout("Barcode:", self.barcode_input, 150)
+        single_row_layout.addWidget(barcode_field_widget)
+
+        # 9. Barcode Save Button
+        self.barcode_save_btn = QPushButton("Save Barcode")
+        self.barcode_save_btn.setFixedWidth(150) # Adjust width as needed
+        self.barcode_save_btn.setStyleSheet("background-color: #CCCCFF;") # Give it a unique look
+        self.barcode_save_btn.hide()
+
+        barcode_btn_layout = QHBoxLayout()
+        barcode_btn_layout.setContentsMargins(0, 0, 0, 0)
+        barcode_btn_layout.addWidget(self.barcode_save_btn)
+        barcode_btn_container = QWidget()
+        barcode_btn_container.setLayout(barcode_btn_layout)
+        single_row_layout.addWidget(barcode_btn_container)
 
         single_row_layout.addStretch(1) # Pushes everything to the left
         main_layout.addLayout(single_row_layout)
@@ -1118,10 +1132,30 @@ class OrderForm(QWidget):
         dialog.price_input.setText(current_data["Unit"])
         dialog.status_combo.setCurrentText(current_data["Status"])
         dialog.barcode_input.setText(current_data["Barcode"]) 
+        dialog.barcode_save_btn.show()
         
+        def save_barcode_only():
+            new_barcode = dialog.barcode_input.text()
+            item = self.items_container.item(row, 12)
+            if item is None:
+                item = QTableWidgetItem(new_barcode)
+                self.items_container.setItem(row, 12, item)
+            else:
+                item.setText(new_barcode)     
+            print(f"Barcode for row {row} updated to: {new_barcode}")
+            dialog.barcode_save_btn.setStyleSheet("background-color: lightgreen;")
+        try:
+            dialog.barcode_save_btn.clicked.disconnect()
+        except:
+            pass  
+
+        dialog.barcode_save_btn.clicked.connect(save_barcode_only)
+
         if dialog.exec_() == QDialog.Accepted:
             new_data = dialog.get_data()
             self._update_item_row(row, new_data)
+
+        #dialog.barcode_save_btn.hide()
 
     def _update_item_row(self, row, data):
         try:
