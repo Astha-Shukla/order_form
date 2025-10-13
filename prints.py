@@ -46,7 +46,7 @@ class PrintExportDialog(QDialog):
             if hasattr(widget, 'isChecked') and widget.isChecked():
                 price = self._get_parent_text(price_attr_name, "0")
                 option_text = widget.text().strip()
-                return f"✅ {option_text} (Price: {price})"
+                return f"{option_text} (Price: {price})"
         return None
     
     def _get_parent_printing_options(self):
@@ -64,7 +64,7 @@ class PrintExportDialog(QDialog):
                     if checkbox.isChecked():
                         price = price_edit.text() if hasattr(price_edit, 'text') else "0"
                         option_text = checkbox.text().strip()
-                        printing_options.append(f"<li>✅ {option_text} (Price: {price} INR)</li>")
+                        printing_options.append(f"<li>{option_text} (Price: {price} INR)</li>")
 
         return "".join(printing_options) or "<li>None Selected</li>"
     
@@ -92,7 +92,7 @@ class PrintExportDialog(QDialog):
                         
                         detail_info = f" ({extra_detail})" if extra_detail else ""
                         
-                        track_options_list.append(f"<li>✅ {option_text}{detail_info} (Price: {price} INR)</li>")
+                        track_options_list.append(f"<li>{option_text}{detail_info} (Price: {price} INR)</li>")
 
         return "".join(track_options_list) or "<li>None Selected</li>"
     
@@ -138,7 +138,7 @@ class PrintExportDialog(QDialog):
             if hasattr(parent, attr_name):
                 widget = getattr(parent, attr_name)
                 if hasattr(widget, 'isChecked') and widget.isChecked():
-                    button_options.append(f"✅ {text}")
+                    button_options.append(f"{text}")
                     
         button_options_list = "".join(f"<li>{opt}</li>" for opt in button_options) or "<li>None Selected (Default)</li>"
 
