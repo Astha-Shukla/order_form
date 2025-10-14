@@ -157,6 +157,26 @@ class ItemInputDialog(QDialog):
 
         single_row_layout.addStretch(1) # Pushes everything to the left
         main_layout.addLayout(single_row_layout)
+
+        # 🌟 NEW: REMARK FIELD SETUP
+        self.remark_input = QLineEdit()
+        self.remark_input.setPlaceholderText("Enter item-specific remark...")
+        self.remark_input.setMinimumWidth(800) # Give it enough space
+        self.remark_input.setStyleSheet("QLineEdit { border: 1px solid black; border-radius: 0px; padding: 4px 6px; }")
+
+        remark_label = QLabel("Remark:")
+        remark_label.setFixedWidth(65)
+        remark_label.setStyleSheet("font-weight: bold;")
+        
+        remark_container_layout = QHBoxLayout()
+        remark_container_layout.setContentsMargins(0, 0, 0, 0)
+        remark_container_layout.addWidget(remark_label)
+        remark_container_layout.addWidget(self.remark_input)
+        remark_container_layout.addStretch(1)
+
+        main_layout.addSpacing(15)
+        main_layout.addLayout(remark_container_layout)
+        main_layout.addSpacing(5)
         
         # --- Done Button Layout ---
         main_layout.addSpacing(20)
@@ -193,7 +213,8 @@ class ItemInputDialog(QDialog):
             "Qty": self.qty_input.text(),
             "Unit": self.price_input.text(),
             "Status": self.status_combo.currentText(),
-            "Barcode": self.barcode_input.text()
+            "Barcode": self.barcode_input.text(),
+            "Remark": self.remark_input.text()
         }
 
 class OrderForm(QWidget):
@@ -991,7 +1012,7 @@ class OrderForm(QWidget):
         group_layout.addLayout(top_layout)
         
         self.items_container = QTableWidget()
-        self.items_container.setColumnCount(13) 
+        self.items_container.setColumnCount(14) 
         
         self.items_container.setStyleSheet("""
         QTableWidget {
@@ -1031,6 +1052,7 @@ class OrderForm(QWidget):
         self.items_container.setColumnHidden(10, True)
         self.items_container.setColumnHidden(11, True)
         self.items_container.setColumnHidden(12, True)
+        self.items_container.setColumnHidden(13, True)
         group_layout.addWidget(self.items_container)
        
         # --- Grand Total Label ---
@@ -1074,12 +1096,13 @@ class OrderForm(QWidget):
         data["CollarAddOn"] = get_safe_text(self.items_container, row, 10)
         data["TrackAddOn"] = get_safe_text(self.items_container, row, 11)
         data["Barcode"] = get_safe_text(self.items_container, row, 12)
+        data["Remark"] = get_safe_text(self.items_container, row, 13)
         
         return data
     
     @staticmethod
     def _set_dialog_read_only(dialog, is_read_only=True):
-        for widget in [dialog.color_input, dialog.qty_input, dialog.price_input, dialog.barcode_input]:
+        for widget in [dialog.color_input, dialog.qty_input, dialog.price_input, dialog.barcode_input, dialog.remark_input]:
             if isinstance(widget, QLineEdit):
                 widget.setReadOnly(is_read_only)
         
@@ -1112,6 +1135,7 @@ class OrderForm(QWidget):
         dialog.price_input.setText(current_data["Unit"])
         dialog.status_combo.setCurrentText(current_data["Status"])
         dialog.barcode_input.setText(current_data["Barcode"])
+        dialog.remark_input.setText(current_data["Remark"]) 
         
         self._set_dialog_read_only(dialog, is_read_only=True)
         
@@ -1131,6 +1155,7 @@ class OrderForm(QWidget):
         dialog.price_input.setText(current_data["Unit"])
         dialog.status_combo.setCurrentText(current_data["Status"])
         dialog.barcode_input.setText(current_data["Barcode"]) 
+        dialog.remark_input.setText(current_data["Remark"])
         dialog.barcode_save_btn.show()
         
         def save_barcode_only():
@@ -1200,6 +1225,7 @@ class OrderForm(QWidget):
         safe_set_item(self.items_container, row, 6, f"{total:.2f}") 
         safe_set_item(self.items_container, row, 7, data["Status"])
         safe_set_item(self.items_container, row, 12, data["Barcode"])
+        safe_set_item(self.items_container, row, 13, data["Remark"])
         
         # Columns 9-11 (Hidden add-ons data)
         safe_set_item(self.items_container, row, 9, f"{printing_add_on_per_unit:.2f}")
@@ -1342,10 +1368,14 @@ class OrderForm(QWidget):
         item_barcode = QTableWidgetItem(data["Barcode"])
         self.items_container.setItem(row, 12, item_barcode)
 
+        item_remark = QTableWidgetItem(data["Remark"]) 
+        self.items_container.setItem(row, 13, item_remark)
+
         self.items_container.setColumnHidden(9, True)
         self.items_container.setColumnHidden(10, True)
         self.items_container.setColumnHidden(11, True) 
         self.items_container.setColumnHidden(12, True) 
+        self.items_container.setColumnHidden(13, True)
         self._update_grand_total()
 
     def get_total_printing_price(self):
