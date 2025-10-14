@@ -216,6 +216,80 @@ class ItemInputDialog(QDialog):
             "Barcode": self.barcode_input.text(),
             "Remark": self.remark_input.text()
         }
+    
+class EmployeeDetailsDialog(QDialog):
+    def __init__(self, item_type, current_data=None, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Enter Employee Details")
+        self.setMinimumSize(700, 350) 
+        
+        # Determine which fields are relevant based on item type
+        # Assuming only T-Shirts need Printing and Collar details
+        # Assuming only Track-Pants/Shorts need Stretching details
+        self.item_type = item_type.lower()
+        
+        # Use existing data if editing, otherwise default to empty strings
+        self.current_data = current_data if current_data is not None else {}
+        
+        main_layout = QVBoxLayout(self)
+        form_layout = QVBoxLayout()
+        form_layout.setSpacing(10)
+
+        # --- Helper for fields ---
+        def add_field(label_text, key, is_mandatory=True):
+            h_layout = QHBoxLayout()
+            label = QLabel(label_text)
+            label.setFixedWidth(200)
+            
+            # Use QComboBox for a few options or QLineEdit if names are free-form
+            # We'll use QLineEdit for simplicity here, but QComboBox is better for fixed staff lists
+            line_edit = QLineEdit(self.current_data.get(key, ""))
+            line_edit.setPlaceholderText(f"Enter {label_text}")
+            setattr(self, key.replace(" ", "_").lower() + "_input", line_edit)
+            
+            h_layout.addWidget(label)
+            h_layout.addWidget(line_edit)
+            form_layout.addLayout(h_layout)
+            return line_edit
+            
+        # 1. Cutting Employee (Always required)
+        self.cutting_employee_input = add_field("Cutting Employee:", "Cutting Employee Name")
+        
+        # 2. Printing Employee (T-Shirt Specific, but generally included)
+        self.printing_employee_input = add_field("Printing Employee:", "Printing Employee Name")
+        
+        # 3. RIB Collar Employee (T-Shirt Specific, but generally included)
+        self.collar_employee_input = add_field("RIB Collar Employee:", "RIB Collar Employee Name")
+        
+        # 4. Stretching Employee (Often Pant/Short Specific, but generally included)
+        self.stretching_employee_input = add_field("Stretching Employee:", "Stretching Employee Name")
+        
+        main_layout.addLayout(form_layout)
+        main_layout.addSpacing(20)
+
+        # --- Buttons ---
+        button_layout = QHBoxLayout()
+        self.save_button = QPushButton("Save")
+        self.cancel_button = QPushButton("Cancel")
+        
+        self.save_button.clicked.connect(self.accept)
+        self.cancel_button.clicked.connect(self.reject)
+        
+        button_layout.addStretch(1)
+        button_layout.addWidget(self.save_button)
+        button_layout.addWidget(self.cancel_button)
+        button_layout.addStretch(1)
+        
+        main_layout.addLayout(button_layout)
+        
+    def get_employee_data(self):
+        """Returns the data collected in this dialog."""
+        return {
+            "Cutting Employee Name": self.cutting_employee_input.text(),
+            "Printing Employee Name": self.printing_employee_input.text(),
+            "RIB Collar Employee Name": self.collar_employee_input.text(),
+            "Stretching Employee Name": self.stretching_employee_input.text()
+        }
 
 class OrderForm(QWidget):
     def __init__(self):
@@ -1012,7 +1086,7 @@ class OrderForm(QWidget):
         group_layout.addLayout(top_layout)
         
         self.items_container = QTableWidget()
-        self.items_container.setColumnCount(14) 
+        self.items_container.setColumnCount(18) 
         
         self.items_container.setStyleSheet("""
         QTableWidget {
@@ -1053,6 +1127,10 @@ class OrderForm(QWidget):
         self.items_container.setColumnHidden(11, True)
         self.items_container.setColumnHidden(12, True)
         self.items_container.setColumnHidden(13, True)
+        self.items_container.setColumnHidden(14, True) 
+        self.items_container.setColumnHidden(15, True) 
+        self.items_container.setColumnHidden(16, True) 
+        self.items_container.setColumnHidden(17, True) 
         group_layout.addWidget(self.items_container)
        
         # --- Grand Total Label ---
@@ -1097,7 +1175,11 @@ class OrderForm(QWidget):
         data["TrackAddOn"] = get_safe_text(self.items_container, row, 11)
         data["Barcode"] = get_safe_text(self.items_container, row, 12)
         data["Remark"] = get_safe_text(self.items_container, row, 13)
-        
+        data["Cutting Employee Name"] = get_safe_text(self.items_container, row, 14)
+        data["Printing Employee Name"] = get_safe_text(self.items_container, row, 15)
+        data["RIB Collar Employee Name"] = get_safe_text(self.items_container, row, 16)
+        data["Stretching Employee Name"] = get_safe_text(self.items_container, row, 17)
+                
         return data
     
     @staticmethod
@@ -1176,10 +1258,23 @@ class OrderForm(QWidget):
         dialog.barcode_save_btn.clicked.connect(save_barcode_only)
 
         if dialog.exec_() == QDialog.Accepted:
-            new_data = dialog.get_data()
-            self._update_item_row(row, new_data)
-
-        #dialog.barcode_save_btn.hide()
+            item_data = dialog.get_data()
+            
+            # 🌟 STEP 2: Open the Employee Dialog, passing existing data
+            employee_dialog = EmployeeDetailsDialog(
+                item_type=item_data["Type"], 
+                current_data=current_data, # Pass existing data to pre-fill fields
+                parent=self
+            )
+            
+            if employee_dialog.exec_() == QDialog.Accepted:
+                employee_data = employee_dialog.get_employee_data()
+                
+                # Combine the updated item data and employee data
+                final_data = {**item_data, **employee_data}
+                
+                # Final update to the table
+                self._update_item_row(row, final_data)
 
     def _update_item_row(self, row, data):
         try:
@@ -1226,6 +1321,10 @@ class OrderForm(QWidget):
         safe_set_item(self.items_container, row, 7, data["Status"])
         safe_set_item(self.items_container, row, 12, data["Barcode"])
         safe_set_item(self.items_container, row, 13, data["Remark"])
+        safe_set_item(self.items_container, row, 14, data["Cutting Employee Name"])
+        safe_set_item(self.items_container, row, 15, data["Printing Employee Name"])
+        safe_set_item(self.items_container, row, 16, data["RIB Collar Employee Name"])
+        safe_set_item(self.items_container, row, 17, data["Stretching Employee Name"])
         
         # Columns 9-11 (Hidden add-ons data)
         safe_set_item(self.items_container, row, 9, f"{printing_add_on_per_unit:.2f}")
@@ -1263,7 +1362,20 @@ class OrderForm(QWidget):
         dialog = ItemInputDialog(self)
         if dialog.exec_() == QDialog.Accepted:
             item_data = dialog.get_data()
-            self._add_item_row(item_data)
+            employee_dialog = EmployeeDetailsDialog(
+                item_type=item_data["Type"], 
+                current_data=None, # No existing employee data for new item
+                parent=self
+            )
+            
+            if employee_dialog.exec_() == QDialog.Accepted:
+                employee_data = employee_dialog.get_employee_data()
+                
+                # Combine all data fields
+                final_data = {**item_data, **employee_data}
+                
+                # Final save to the table
+                self._add_item_row(final_data)
     
     def _add_item_row(self, data):
         row = self.items_container.rowCount()
@@ -1371,11 +1483,20 @@ class OrderForm(QWidget):
         item_remark = QTableWidgetItem(data["Remark"]) 
         self.items_container.setItem(row, 13, item_remark)
 
+        self.items_container.setItem(row, 14, QTableWidgetItem(data["Cutting Employee Name"]))
+        self.items_container.setItem(row, 15, QTableWidgetItem(data["Printing Employee Name"]))
+        self.items_container.setItem(row, 16, QTableWidgetItem(data["RIB Collar Employee Name"]))
+        self.items_container.setItem(row, 17, QTableWidgetItem(data["Stretching Employee Name"]))
+
         self.items_container.setColumnHidden(9, True)
         self.items_container.setColumnHidden(10, True)
         self.items_container.setColumnHidden(11, True) 
         self.items_container.setColumnHidden(12, True) 
         self.items_container.setColumnHidden(13, True)
+        self.items_container.setColumnHidden(14, True) # Cutting
+        self.items_container.setColumnHidden(15, True) # Printing
+        self.items_container.setColumnHidden(16, True) # Collar
+        self.items_container.setColumnHidden(17, True) # Stretching
         self._update_grand_total()
 
     def get_total_printing_price(self):
