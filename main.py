@@ -232,8 +232,7 @@ class OrderForm(QWidget):
         item_box=self.create_item_selection_box()
         self.main_layout.addWidget(item_box)
 
-        self.add_remark_field()
-
+        self.setup_tax_and_remark_fields()
       
         self.main_layout.addLayout(self.create_buttons_row())
         # Add row panel first
@@ -1440,15 +1439,55 @@ class OrderForm(QWidget):
                 except ValueError:
                     pass
         self.grand_total_label.setText(f"Grand Total: {total_sum}")
-    
-     # --- Remark Field as separate method ---
-    def add_remark_field(self):
-        self.main_layout.addSpacing(10)
-        remark_layout = QHBoxLayout()
-        remark_layout.setSpacing(10)
+
+    def setup_tax_and_remark_fields(self):
+        # This layout will hold both the Tax controls (on the left) 
+        # and the Remark input (on the right).
+        combined_row_layout = QHBoxLayout()
+        combined_row_layout.setSpacing(20)
+        
+        # --- 1. TAX (GST) FIELDS ---
+        tax_fields_layout = QHBoxLayout()
+        tax_fields_layout.setSpacing(10)
+        tax_fields_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Tax Label
+        tax_label = QLabel("TAX (GST):")
+        tax_label.setFixedWidth(80) # Adjusted width
+        tax_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        tax_label.setStyleSheet("font-size: 16px; font-weight: bold;")
+        tax_fields_layout.addWidget(tax_label)
+
+        # Y/N Selector
+        self.tax_apply_combo = QComboBox()
+        self.tax_apply_combo.addItems(["N", "Y"])
+        self.tax_apply_combo.setFixedWidth(50)
+        self.tax_apply_combo.setStyleSheet("border: 1px solid black; border-radius: 0px; padding: 2px;")
+        tax_fields_layout.addWidget(self.tax_apply_combo)
+
+        # Percentage Input Field
+        self.tax_percentage_input = QLineEdit("0.0")
+        self.tax_percentage_input.setPlaceholderText("Percentage (%)")
+        self.tax_percentage_input.setFixedWidth(120)
+        self.tax_percentage_input.setStyleSheet("border: 1px solid black; border-radius: 0px; padding: 4px 6px;")
+        self.tax_percentage_input.setDisabled(True) # Disabled by default ("N" selected)
+        tax_fields_layout.addWidget(self.tax_percentage_input)
+        
+        # Add the entire tax section to the combined row
+        tax_section_widget = QWidget()
+        tax_section_widget.setLayout(tax_fields_layout)
+        combined_row_layout.addWidget(tax_section_widget)
+
+        # Add a horizontal line or spacing to separate GST and REMARK visually
+        combined_row_layout.addSpacing(40) 
+
+        # --- 2. REMARK FIELD ---
+        remark_fields_layout = QHBoxLayout()
+        remark_fields_layout.setSpacing(10)
+        remark_fields_layout.setContentsMargins(0, 0, 0, 0)
 
         remark_label = QLabel("REMARK:")
-        remark_label.setFixedWidth(100)
+        remark_label.setFixedWidth(90) # Adjusted width
         remark_label.setAlignment(Qt.AlignCenter)
         remark_label.setStyleSheet("""
             QLabel {
@@ -1456,29 +1495,42 @@ class OrderForm(QWidget):
                 font-weight: bold;
                 border: 1px solid black;
                 padding: 2px 4px;
-                border-radius: 4px;  /* chhota rounded corner optional */
-                background-color: #f9f9f9;  /* optional background color */
+                border-radius: 4px;
+                background-color: #f9f9f9;
             }
         """)
-       
+        
         self.remark_input = QLineEdit()
         self.remark_input.setPlaceholderText("Enter remark here...")
         self.remark_input.setFixedWidth(500)
-        self.remark_input.setStyleSheet("""
-            QLineEdit {
-                border: 1px solid black;
-                border-radius: 0px;
-                padding: 4px 6px;
-                background-color: #ffffff;
-            }
-        """)
+        self.remark_input.setStyleSheet("QLineEdit { border: 1px solid black; border-radius: 0px; padding: 4px 6px; }")
 
-        remark_layout.addWidget(remark_label)
-        remark_layout.addWidget(self.remark_input)
-        remark_layout.addStretch()
+        remark_fields_layout.addWidget(remark_label)
+        remark_fields_layout.addWidget(self.remark_input)
 
-        self.main_layout.addLayout(remark_layout)
-        self.main_layout.addSpacing(10)
+        # Add the entire remark section to the combined row
+        remark_section_widget = QWidget()
+        remark_section_widget.setLayout(remark_fields_layout)
+        combined_row_layout.addWidget(remark_section_widget)
+
+        # Add stretch to push everything to the left side
+        combined_row_layout.addStretch(1)
+
+        # Add the final combined layout to the main layout
+        self.main_layout.addLayout(combined_row_layout)
+        self.main_layout.addSpacing(10) # Add space after the combined row
+        
+        # --- CONNECTIVITY (REQUIRED for conditional logic) ---
+        self.tax_apply_combo.currentTextChanged.connect(self._toggle_tax_percentage_field)
+
+    def _toggle_tax_percentage_field(self, text):
+        """Enables/Disables the tax percentage input based on the Y/N selection."""
+        if text == "Y":
+            self.tax_percentage_input.setDisabled(False)
+            self.tax_percentage_input.setText("18.0") # Set default GST value
+        else:
+            self.tax_percentage_input.setDisabled(True)
+            self.tax_percentage_input.setText("0.0") # Reset to zero when tax is off
 
     def create_buttons_row(self):
         buttons_layout = QHBoxLayout()
