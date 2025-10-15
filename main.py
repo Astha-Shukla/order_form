@@ -66,8 +66,9 @@ class ImageGalleryWindow(QDialog):
                         row += 1
 
 class ItemInputDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, is_view_only=False):
         super().__init__(parent)
+        self.is_view_only = is_view_only 
         self.setWindowTitle("Add New Item")
 
         self.setMinimumSize(1820, 350) 
@@ -165,7 +166,7 @@ class ItemInputDialog(QDialog):
         self.remark_input.setStyleSheet("QLineEdit { border: 1px solid black; border-radius: 0px; padding: 4px 6px; }")
 
         remark_label = QLabel("Remark:")
-        remark_label.setFixedWidth(65)
+        remark_label.setFixedWidth(70)
         remark_label.setStyleSheet("font-weight: bold;")
         
         remark_container_layout = QHBoxLayout()
@@ -176,32 +177,32 @@ class ItemInputDialog(QDialog):
 
         main_layout.addSpacing(15)
         main_layout.addLayout(remark_container_layout)
-        main_layout.addSpacing(5)
-        
-        # --- Done Button Layout ---
-        main_layout.addSpacing(20)
-        self.done_button = QPushButton("Done")
-        self.done_button.setFixedWidth(120)
+        if not self.is_view_only:
+            main_layout.addSpacing(5)
+            
+            main_layout.addSpacing(20)
+            self.done_button = QPushButton("Done")
+            self.done_button.setFixedWidth(120)
 
-        self.done_button.setStyleSheet("""
-            QPushButton {
-                border: 1px solid #000000; 
-                border-radius: 0px;
-                padding: 5px; 
-                background-color: #f0f0f0; 
-            }
-            QPushButton:hover {
-                background-color: #e0e0e0; 
-            }
-        """)
-        self.done_button.clicked.connect(self.accept) 
-        
-        done_layout = QHBoxLayout()
-        done_layout.addStretch(1) # Push button to the right
-        done_layout.addWidget(self.done_button)
-        done_layout.addStretch(1) # Center the button
+            self.done_button.setStyleSheet("""
+                QPushButton {
+                    border: 1px solid #000000; 
+                    border-radius: 0px;
+                    padding: 5px; 
+                    background-color: #f0f0f0; 
+                }
+                QPushButton:hover {
+                    background-color: #e0e0e0; 
+                }
+            """)
+            self.done_button.clicked.connect(self.accept) 
+            
+            done_layout = QHBoxLayout()
+            done_layout.addStretch(1) # Push button to the right
+            done_layout.addWidget(self.done_button)
+            done_layout.addStretch(1) # Center the button
 
-        main_layout.addLayout(done_layout)
+            main_layout.addLayout(done_layout)
         
     # Method to easily retrieve all data (Remains the same)
     def get_data(self):
@@ -1206,7 +1207,7 @@ class OrderForm(QWidget):
 
         current_data = self._get_row_data(row)
         
-        dialog = ItemInputDialog(self)
+        dialog = ItemInputDialog(self, is_view_only=True) 
         dialog.setWindowTitle("View an Item") 
         
         dialog.cloth_combo.setCurrentText(current_data["Fabric"])
@@ -1360,14 +1361,23 @@ class OrderForm(QWidget):
     
     def _open_add_item_dialog(self):
         dialog = ItemInputDialog(self)
+        dialog.barcode_save_btn.show()
+
+        def save_barcode_only():
+            dialog.barcode_save_btn.setStyleSheet("background-color: lightgreen;")
+            print(f"Barcode saved temporarily in dialog: {dialog.barcode_input.text()}")
+        try:
+            dialog.barcode_save_btn.clicked.disconnect()
+        except:
+            pass 
+        dialog.barcode_save_btn.clicked.connect(save_barcode_only)
         if dialog.exec_() == QDialog.Accepted:
             item_data = dialog.get_data()
             employee_dialog = EmployeeDetailsDialog(
                 item_type=item_data["Type"], 
                 current_data=None, # No existing employee data for new item
                 parent=self
-            )
-            
+            )            
             if employee_dialog.exec_() == QDialog.Accepted:
                 employee_data = employee_dialog.get_employee_data()
                 
