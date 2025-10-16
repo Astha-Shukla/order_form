@@ -74,8 +74,8 @@ class ItemInputDialog(QDialog):
         self.setMinimumSize(1820, 350) 
         
         # Main layout is Vertical
-        main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(20)
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setSpacing(20)
         
         # --- Helper function for label + widget (re-used logic) ---
         def create_field_layout(label_text, widget, input_width=120):
@@ -157,9 +157,8 @@ class ItemInputDialog(QDialog):
         single_row_layout.addWidget(barcode_btn_container)
 
         single_row_layout.addStretch(1) # Pushes everything to the left
-        main_layout.addLayout(single_row_layout)
+        self.main_layout.addLayout(single_row_layout)
 
-        # 🌟 NEW: REMARK FIELD SETUP
         self.remark_input = QLineEdit()
         self.remark_input.setPlaceholderText("Enter item-specific remark...")
         self.remark_input.setMinimumWidth(800) # Give it enough space
@@ -175,12 +174,45 @@ class ItemInputDialog(QDialog):
         remark_container_layout.addWidget(self.remark_input)
         remark_container_layout.addStretch(1)
 
-        main_layout.addSpacing(15)
-        main_layout.addLayout(remark_container_layout)
-        if not self.is_view_only:
-            main_layout.addSpacing(5)
+        self.main_layout.addSpacing(15)
+        self.main_layout.addLayout(remark_container_layout)
+
+        if self.is_view_only:
+            # Layout to hold the new action buttons
+            action_buttons_layout = QHBoxLayout()
+            action_buttons_layout.setSpacing(10)
             
-            main_layout.addSpacing(20)
+            # Create the buttons (as instance attributes)
+            self.job_btn = QPushButton("⚒️ STRETCHING")
+            self.cut_btn = QPushButton("✂️ CUTTING")
+            self.print_btn = QPushButton("🖨 PRINTING")
+            
+            for btn in [self.job_btn, self.cut_btn, self.print_btn]:
+                btn.setFixedHeight(40)
+                btn.setFixedWidth(150)
+                btn.setStyleSheet("""
+                    QPushButton { 
+                        background-color: #CCCCFF; 
+                        font-weight: bold; 
+                        border: 1px solid #000000;
+                    }
+                    QPushButton:hover {
+                        background-color: #AAAAEE;
+                    }
+                """)
+                action_buttons_layout.addWidget(btn)
+
+            action_buttons_layout.addStretch(1) # Push buttons to the left
+
+            # Add spacing above the new buttons and add the layout
+            self.main_layout.addSpacing(25) 
+            self.main_layout.addLayout(action_buttons_layout)
+            self.main_layout.addStretch(1) # Final stretch to push everything up
+
+        if not self.is_view_only:
+            self.main_layout.addSpacing(5)
+            
+            self.main_layout.addSpacing(20)
             self.done_button = QPushButton("Done")
             self.done_button.setFixedWidth(120)
 
@@ -202,7 +234,7 @@ class ItemInputDialog(QDialog):
             done_layout.addWidget(self.done_button)
             done_layout.addStretch(1) # Center the button
 
-            main_layout.addLayout(done_layout)
+            self.main_layout.addLayout(done_layout)
         
     # Method to easily retrieve all data (Remains the same)
     def get_data(self):
@@ -1219,7 +1251,10 @@ class OrderForm(QWidget):
         dialog.status_combo.setCurrentText(current_data["Status"])
         dialog.barcode_input.setText(current_data["Barcode"])
         dialog.remark_input.setText(current_data["Remark"]) 
-        
+        dialog.job_btn.clicked.connect(lambda: self._job_work_action(row)) 
+        dialog.cut_btn.clicked.connect(lambda: self._cutting_action(row))
+        dialog.print_btn.clicked.connect(lambda: self._printing_action(row))
+            
         self._set_dialog_read_only(dialog, is_read_only=True)
         
         dialog.exec_()
@@ -1702,26 +1737,26 @@ class OrderForm(QWidget):
         self.undo_btn=QPushButton("↩️\n CANCEL")
         self.quotatation_btn = QPushButton("💾\n QUOTATION")
         self.bill_btn = QPushButton("🧾\n GENERATE BILL")
-        self.job_btn = QPushButton("⚒️\n JOB WORK")
+        #self.job_btn = QPushButton("⚒️\n JOB WORK")
         self.rib_btn = QPushButton("🧵\n RIB COLLAR")
-        self.cut_btn = QPushButton("✂️\n CUTTING")
-        self.print_btn = QPushButton("🖨\n PRINTING")
+        #self.cut_btn = QPushButton("✂️\n CUTTING")
+        #self.print_btn = QPushButton("🖨\n PRINTING")
         
         self.bill_btn.setFixedWidth(170)
         self.save_btn.setFixedWidth(140)
         self.undo_btn.setFixedWidth(140)
         self.quotatation_btn.setFixedWidth(140)
-        self.job_btn.setFixedWidth(140)
+        #self.job_btn.setFixedWidth(140)
         self.rib_btn.setFixedWidth(140)
-        self.cut_btn.setFixedWidth(140)
-        self.print_btn.setFixedWidth(140)
+        #self.cut_btn.setFixedWidth(140)
+        #self.print_btn.setFixedWidth(140)
 
         #Connect Buttons to functions
         self.quotatation_btn.clicked.connect(self.show_quotation_preview)
        
         buttons = [
-            self.save_btn,self.undo_btn, self.quotatation_btn, self.bill_btn, self.job_btn,
-            self.rib_btn, self.cut_btn, self.print_btn
+            self.save_btn,self.undo_btn, self.quotatation_btn, self.bill_btn, self.rib_btn,
+            #self.job_btn, self.rib_btn, self.cut_btn, self.print_btn
         ]
 
         for i, btn in enumerate(buttons):
