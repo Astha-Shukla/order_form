@@ -147,7 +147,7 @@ class ItemInputDialog(QDialog):
         self.barcode_save_btn = QPushButton("Save Barcode")
         self.barcode_save_btn.setFixedWidth(150) # Adjust width as needed
         self.barcode_save_btn.setStyleSheet("background-color: #CCCCFF;") # Give it a unique look
-        self.barcode_save_btn.hide()
+        #self.barcode_save_btn.hide()
 
         barcode_btn_layout = QHBoxLayout()
         barcode_btn_layout.setContentsMargins(0, 0, 0, 0)
@@ -1251,6 +1251,27 @@ class OrderForm(QWidget):
         dialog.status_combo.setCurrentText(current_data["Status"])
         dialog.barcode_input.setText(current_data["Barcode"])
         dialog.remark_input.setText(current_data["Remark"]) 
+        dialog.barcode_save_btn.show()
+        
+        def save_barcode_only_in_view():
+            new_barcode = dialog.barcode_input.text()
+            item = self.items_container.item(row, 12)
+            if item is None:
+                from PyQt5.QtWidgets import QTableWidgetItem
+                item = QTableWidgetItem(new_barcode)
+                self.items_container.setItem(row, 12, item)
+            else:
+                item.setText(new_barcode) 
+            print(f"Barcode for row {row} updated to: {new_barcode} from View Item dialog.")
+            dialog.barcode_save_btn.setStyleSheet("background-color: lightgreen;")
+            
+            dialog.barcode_input.setReadOnly(True)
+        try:
+            dialog.barcode_save_btn.clicked.disconnect()
+        except:
+            pass 
+            
+        dialog.barcode_save_btn.clicked.connect(save_barcode_only_in_view)
         dialog.job_btn.clicked.connect(lambda: self._job_work_action(row)) 
         dialog.cut_btn.clicked.connect(lambda: self._cutting_action(row))
         dialog.print_btn.clicked.connect(lambda: self._printing_action(row))
