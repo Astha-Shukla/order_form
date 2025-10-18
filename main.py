@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
 
 from PyQt5.QtGui import QPixmap,QPainter, QPen, QColor
 from PyQt5.QtCore import Qt, QDate, QPointF,QByteArray, QBuffer, QIODevice
-from prints import PrintExportDialog 
+from prints import PrintExportDialog, QuotationPreviewDialog
 
 MEDIA_ROOT = os.path.join(os.getcwd(), 'media')  # The main folder
 TEMPLATE_DIR = os.path.join(MEDIA_ROOT, 'templates') # For blank shirt images (ComboBox source)
@@ -1835,7 +1835,7 @@ class OrderForm(QWidget):
     
     def show_quotation_preview(self): 
         content_data = self._generate_item_table_html()
-        dialog = PrintExportDialog(self, content_data, document_type="QUOTATION")
+        dialog = QuotationPreviewDialog(self, content_data)
         dialog.exec_()
     
     def open_search_window(self):
