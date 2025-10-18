@@ -725,12 +725,31 @@ class OrderForm(QWidget):
             padding: 3px;
         """
 
+        GROUPBOX_STYLE = """
+            QGroupBox {
+                border: 1px solid #d1d5db; 
+                border-radius: 4px; 
+                margin-top: 15px; 
+                padding-top: 20px; 
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                background-color: #F0FFF0;
+                padding: 0 5px; 
+                padding-bottom: 2px;
+                margin-left: 5px; 
+                margin-top: -1px; 
+            }
+        """
+
     # ========== Printing Options ==========
         default_prices = {'front': '5', 'back': '7', 'patch': '5', 'embroidery': '15', 'Dtf': '0', 'Front sablimation': '60', 'Back sablimation': '60'}
         sec_print = QGroupBox("Printing Options", parent)
         grid_print = QGridLayout(sec_print)
+        sec_print.setStyleSheet(GROUPBOX_STYLE)
         sec_print.setMaximumWidth(350)
-        sec_print.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        #sec_print.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
 
         sec_print.setContentsMargins(30,0,20,0)
         self.print_vars = {}
@@ -760,7 +779,8 @@ class OrderForm(QWidget):
    # ========== Collar Options ==========
         sec1 = QGroupBox("Collar Options", parent)
         grid1 = QGridLayout(sec1)
-        sec1.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        sec1.setStyleSheet(GROUPBOX_STYLE)
+        #sec1.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         sec1.setMinimumWidth(250)
         sec1.setContentsMargins(20,0,50,0)
         sec1.move(sec1.x(), 10)
@@ -819,6 +839,7 @@ class OrderForm(QWidget):
         # ========== Button and Style Options ==========
         sec_button = QGroupBox("Button Options", parent)
         grid_button = QGridLayout(sec_button)
+        sec_button.setStyleSheet(GROUPBOX_STYLE)
 
         self.style_var = "button"
         self.rb_button = QCheckBox("BUTTON")
@@ -846,6 +867,8 @@ class OrderForm(QWidget):
 
         sec_track = QGroupBox("Track Pant Options", parent)
         grid_track = QGridLayout(sec_track)
+        sec_track.setStyleSheet(GROUPBOX_STYLE)
+        sec_track.setContentsMargins(5, 5, 5, 5)
         sec_track.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         sec_track.setContentsMargins(20,0,20,0)
 
@@ -1096,8 +1119,23 @@ class OrderForm(QWidget):
 
     def create_item_selection_box(self):
         group_box = QGroupBox("Item Selection")
-        group_box.setFixedWidth(1700)
-        group_box.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
+        group_box.setStyleSheet("""
+            QGroupBox {
+                border: 1px solid gray; 
+                border-radius: 4px;
+                margin-top: 15px; 
+                padding-top: 20px; 
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left; 
+                background-color: #F0FFF0; 
+                padding: 0 5px; 
+                padding-bottom: 2px;
+                margin-left: 5px; 
+                margin-top: -1px; 
+            }
+        """)        
         
         group_layout = QVBoxLayout()
         group_box.setLayout(group_layout)
@@ -1107,7 +1145,7 @@ class OrderForm(QWidget):
         top_layout.setContentsMargins(0, 0, 0, 0)
         
         self.add_button = QPushButton("+Add")
-        self.add_button.setStyleSheet("background-color:#87CEFA; min-width: 100px;")
+        self.add_button.setStyleSheet("background-color:#87CEFA; min-width: 80px; min-height: 15px;")
         self.add_button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed) 
         self.add_button.clicked.connect(self._open_add_item_dialog) 
         
@@ -1143,7 +1181,7 @@ class OrderForm(QWidget):
             ["Fabric", "Type", "Color", "Size", "Qty", "Unit", "Total price", "Status", "Action"]
         )
         self.items_container.verticalHeader().setVisible(False)
-        self.items_container.setFixedHeight(200)
+        self.items_container.setFixedHeight(120)
 
         self.items_container.setColumnWidth(0, 180)  # Fabric
         self.items_container.setColumnWidth(1, 200)  # Type
