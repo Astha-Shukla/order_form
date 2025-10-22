@@ -346,6 +346,10 @@ class OrderForm(QWidget):
         self.canvas = None
         self.entries = {}
         self._canvas_image_item = None
+        self._total_items_sum = 0.0
+        self._tax_percentage = 0.0
+        self._tax_amount = 0.0
+        self._grand_total = 0.0
 
         # 🔹 Main vertical layout
         self.main_layout = QVBoxLayout(self)
@@ -377,23 +381,14 @@ class OrderForm(QWidget):
         self.main_layout.addStretch()
 
     def open_gallery(self):
-        # self.REFERENCE_DIR should be a constant pointing to your media folder
         self.image_gallery_window = ImageGalleryWindow(self.REFERENCE_DIR, parent=self)
         
-        # Connect the signal to the slot (THIS IS CORRECT AND ESSENTIAL)
         self.image_gallery_window.image_selected.connect(self._set_current_reference_image) 
         
-        # Run the dialog. The code stops here until the user selects an image (self.accept) or cancels.
         result = self.image_gallery_window.exec_()
         
-        # --- ADD THIS LOGIC HERE ---
         if result == QDialog.Accepted and self.current_reference_image_path:
-            # After a successful selection, the main form's display should update
-            # Optionally, call a method here to immediately show the image on the main form, 
-            # or enable the 'Generate Quotation' button.
-            print("Gallery closed. Path successfully set. Ready for quotation.")
-            
-            # If you were expecting the quotation to open immediately:
+            print("Gallery closed. Path successfully set. Ready for quotation.")            
             self.generate_quotation_preview()
 
     def _get_current_reference_image_base64(self):
@@ -414,7 +409,6 @@ class OrderForm(QWidget):
                 print(f"Error converting reference image to base64: {e}") 
                 return ""
         else:
-            # CHECK 5: The path is empty OR the file doesn't exist.
             print(f"DEBUG: Path is None/Empty or file does not exist. os.path.exists returned {os.path.exists(self.current_reference_image_path) if self.current_reference_image_path else 'N/A'}")
             return ""
         
@@ -1740,16 +1734,46 @@ class OrderForm(QWidget):
         self._update_grand_total()
         
     def _update_grand_total(self):
-        total_sum = 0
+        self._total_items_sum = 0.0
+        
+        # 1. Calculate Subtotal (Total Items Price)
         for row in range(self.items_container.rowCount()):
-            item = self.items_container.item(row, 6)  # column 6 = Total price
+            item = self.items_container.item(row, 6)  # Column 6 = Total price (unit + add-ons) * Qty
             if item:
                 try:
-                    total_sum += float(item.text())
+                    # Use the class attribute
+                    self._total_items_sum += float(item.text())
                 except ValueError:
                     pass
-        self.grand_total_label.setText(f"Grand Total: {total_sum}")
+                    
+        # 2. Get Tax Rate
+        tax_apply = self.tax_apply_combo.currentText()
+        self._tax_percentage = 0.0
+        if tax_apply == "Y":
+            try:
+                self._tax_percentage = float(self.tax_percentage_input.text())
+            except ValueError:
+                self._tax_percentage = 0.0
+                
+        # 3. Calculate Tax Amount and Grand Total
+        tax_rate = self._tax_percentage / 100.0
+        self._tax_amount = self._total_items_sum * tax_rate
+        self._grand_total = self._total_items_sum + self._tax_amount
+        
+        # 4. Update UI Labels (The required fix is here)
+        
+        # Update the label that should show the subtotal
+        if hasattr(self, 'total_items_price_label'):
+            # FIX: Changed 'total_items_sum' to 'self._total_items_sum'
+            self.total_items_price_label.setText(f"Total Items Price: {self._total_items_sum:.2f}")
+        
+        # Update the label that should show the tax breakdown
+        if hasattr(self, 'tax_amount_label'):
+            self.tax_amount_label.setText(f"Tax ({self._tax_percentage:.1f}%) @ {tax_apply}: {self._tax_amount:.2f}")
 
+        # Update the Grand Total label (Final amount)
+        # Note: This line is repeated in your original code, which is fine, but redundant.
+        self.grand_total_label.setText(f"Grand Total: {self._grand_total:.2f}")
     def setup_tax_and_remark_fields(self):
         # This layout will hold both the Tax controls (on the left) 
         # and the Remark input (on the right).
@@ -1832,6 +1856,7 @@ class OrderForm(QWidget):
         
         # --- CONNECTIVITY (REQUIRED for conditional logic) ---
         self.tax_apply_combo.currentTextChanged.connect(self._toggle_tax_percentage_field)
+        self.tax_percentage_input.textChanged.connect(self._update_grand_total)
 
     def _toggle_tax_percentage_field(self, text):
         """Enables/Disables the tax percentage input based on the Y/N selection."""
@@ -1841,6 +1866,7 @@ class OrderForm(QWidget):
         else:
             self.tax_percentage_input.setDisabled(True)
             self.tax_percentage_input.setText("0.0") # Reset to zero when tax is off
+        self._update_grand_total()
 
     def create_buttons_row(self):
         buttons_layout = QHBoxLayout()

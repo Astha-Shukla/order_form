@@ -100,37 +100,27 @@ class PrintExportDialog(QDialog):
     
     # --- NEW METHOD FOR TAX CALCULATION ---
     def _get_tax_info(self):
-        parent = self.parent()
+        main_window = self.parent()
         
         try:
-            # Assumes total_price_input holds the pre-tax total price
-            total_price = float(self._get_parent_text('total_price_input').replace('₹', '').strip())
-        except:
-            total_price = 0.0
-
-        tax_applied = self._get_parent_text('tax_apply_combo') == "Y"
-        try:
-            tax_percent = float(self._get_parent_text('tax_percentage_input'))
-        except:
+            total_items_price = main_window._total_items_sum
+            tax_percent = main_window._tax_percentage
+            tax_amount = main_window._tax_amount
+            grand_total = main_window._grand_total # The final, calculated number
+        except AttributeError:
+            total_items_price = 0.0
             tax_percent = 0.0
-        
-        tax_amount = 0.0
-        
-        if tax_applied and tax_percent > 0:
-            tax_amount = (total_price * tax_percent) / 100
-        
-        # Get Grand Total from the label (which is the final calculated value)
-        raw_grand_total_text = self._get_parent_text('grand_total_label')
-        if ':' in raw_grand_total_text:
-             display_grand_total = raw_grand_total_text.split(':')[-1].strip()
-        else:
-             display_grand_total = f"{total_price + tax_amount:.2f}" 
+            tax_amount = 0.0
+            grand_total = 0.0
+
+        tax_apply_text = self._get_parent_text('tax_apply_combo')
+        display_grand_total = f"{grand_total:.2f}"
 
         tax_summary_html = f"""
         <table style="width: 100%; text-align: right; border-collapse: collapse; margin-top: 10px;">
             <tr>
                 <td style="padding: 3px 0; border-top: 1px solid #ddd;"><b>Total Items Price:</b></td>
-                <td style="padding: 3px 0; border-top: 1px solid #ddd;">₹ {total_price:.2f}</td>
+                <td style="padding: 3px 0; border-top: 1px solid #ddd;">₹ {total_items_price:.2f}</td>
             </tr>
             <tr>
                 <td style="padding: 3px 0;"><b>Tax (GST) @ {tax_percent:.1f}%:</b></td>
@@ -807,34 +797,26 @@ class QuotationPreviewDialog(QDialog):
                         track_options_list.append(f"<li>{option_text}{detail_info} (Price: {price} INR)</li>")
         return "".join(track_options_list) or "<li>None Selected</li>"
 
-    def _get_tax_info(self):
-        # TAX LOGIC - CRITICAL FOR QUOTATION
+    def _get_tax_info(self, main_window):
         try:
-            total_price = float(self._get_parent_text('total_price_input').replace('₹', '').strip())
-        except:
-            total_price = 0.0
-
-        tax_applied = self._get_parent_text('tax_apply_combo') == "Y"
-        try:
-            tax_percent = float(self._get_parent_text('tax_percentage_input'))
-        except:
+            total_items_price = main_window._total_items_sum
+            tax_percent = main_window._tax_percentage
+            tax_amount = main_window._tax_amount
+            grand_total = main_window._grand_total # This is the final, calculated number
+        except AttributeError:
+            # Fallback if the attributes haven't been calculated yet (shouldn't happen if called correctly)
+            total_items_price = 0.0
             tax_percent = 0.0
-        
-        tax_amount = 0.0
-        if tax_applied and tax_percent > 0:
-            tax_amount = (total_price * tax_percent) / 100
-        
-        raw_grand_total_text = self._get_parent_text('grand_total_label')
-        if ':' in raw_grand_total_text:
-             display_grand_total = raw_grand_total_text.split(':')[-1].strip()
-        else:
-             display_grand_total = f"{total_price + tax_amount:.2f}" 
+            tax_amount = 0.0
+            grand_total = 0.0
+
+        display_grand_total = f"{grand_total:.2f}"
 
         tax_summary_html = f"""
         <table style="width: 100%; text-align: right; border-collapse: collapse; margin-top: 10px;">
             <tr>
                 <td style="padding: 3px 0; border-top: 1px solid #ddd;"><b>Total Items Price:</b></td>
-                <td style="padding: 3px 0; border-top: 1px solid #ddd;">₹ {total_price:.2f}</td>
+                <td style="padding: 3px 0; border-top: 1px solid #ddd;">₹ {total_items_price:.2f}</td>
             </tr>
             <tr>
                 <td style="padding: 3px 0;"><b>Tax (GST) @ {tax_percent:.1f}%:</b></td>
@@ -875,10 +857,10 @@ class QuotationPreviewDialog(QDialog):
         remarks = self._get_parent_text('remark_input') 
         school_name = self._get_parent_text('school_name') 
         barcode = self._get_parent_text('barcode')
-        
-        tax_summary_html, grand_total = self._get_tax_info()
-        
+
         parent = self.parent()
+        tax_summary_html, grand_total = self._get_tax_info(parent)
+        
         canvas_image_base64_uri = parent._capture_canvas_as_base64() if hasattr(parent, '_capture_canvas_as_base64') else ""
         reference_image_base64_uri = parent._get_current_reference_image_base64()
 
