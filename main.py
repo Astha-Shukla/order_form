@@ -1,7 +1,7 @@
 import sys
 import os
 import math
-
+import base64
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit, QDialog, QPushButton, 
     QVBoxLayout, QHBoxLayout, QGroupBox, QRadioButton,  QFileDialog,
@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy, QListWidgetItem, QScrollArea, QListWidget, QMessageBox)
 
 from PyQt5.QtGui import QPixmap,QPainter, QPen, QColor
-from PyQt5.QtCore import Qt, QDate, QPointF,QByteArray, QBuffer, QIODevice
+from PyQt5.QtCore import Qt, QDate, QPointF,QByteArray, QBuffer, QIODevice, pyqtSignal
 from prints import PrintExportDialog, QuotationPreviewDialog
 
 MEDIA_ROOT = os.path.join(os.getcwd(), 'media')  # The main folder
@@ -19,6 +19,7 @@ TEMPLATE_DIR = os.path.join(MEDIA_ROOT, 'templates') # For blank shirt images (C
 REFERENCE_DIR = os.path.join(MEDIA_ROOT, 'references') # For customer-uploaded photos (Gallery source) 
 
 class ImageGalleryWindow(QDialog):
+    #image_selected = pyqtSignal(str)
     def __init__(self, media_dir, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Uploaded Image Gallery")
@@ -56,7 +57,9 @@ class ImageGalleryWindow(QDialog):
                 if not pixmap.isNull():
                     label.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
                     label.setAlignment(Qt.AlignCenter)
-                    label.setToolTip(filename) # Show filename on hover
+                    label.setToolTip(filename)
+                    label.mousePressEvent = lambda event, path=image_path: self._image_clicked(path)
+                    label.setCursor(Qt.PointingHandCursor)
                     
                     self.gallery_layout.addWidget(label, row, col)
                     
@@ -329,7 +332,7 @@ class OrderForm(QWidget):
         super().__init__()
         self.setWindowTitle("Order Form")
         self.setStyleSheet("background-color: #F5FFFA")
-
+        self.current_reference_image_path = None
     
         # ✅ सबसे पहले image और बाकी variables init करो
         self.image = None
@@ -365,8 +368,6 @@ class OrderForm(QWidget):
         self.main_layout.addLayout(self.create_buttons_row())
         # Add row panel first
 
-
-# Then stretch at the very end
         self.main_layout.addStretch()
 
     def create_button(self, text, emoji, shortcut=None, size=(80, 80)):

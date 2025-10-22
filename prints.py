@@ -4,12 +4,12 @@ import webbrowser
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QFileDialog, QMenu, QApplication)
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
 from PyQt5.QtGui import QTextDocument, QCursor, QPixmap, QPainter
-from PyQt5.QtCore import QUrl, QSize, QRectF
+from PyQt5.QtCore import QUrl, QSize, QRectF, QByteArray, QBuffer, QIODevice
 from openpyxl import Workbook
 from docx import Document
 from pptx import Presentation
 from pptx.util import Inches
-
+import re
 class PrintExportDialog(QDialog):
     def __init__(self, parent, content_data, document_type="ORDER", **kwargs):
         super().__init__(parent, **kwargs)
@@ -144,6 +144,73 @@ class PrintExportDialog(QDialog):
         """
         return tax_summary_html, display_grand_total
     
+    def _clean_table_html(self, html_content):
+        """
+        A dedicated helper to remove all table columns (<th>/<td>) that appear 
+        AFTER the 'Total Price' column.
+        """
+        if not html_content:
+            return ""
+
+        # Pattern 1: Target the Header Row (assumed to be the first <tr>...</tr>)
+        def clean_header(match):
+            header_row = match.group(0)
+            # Find the position right after "Total Price</th>"
+            # Use re.escape to handle potential special chars in "Total Price" if they were present
+            pattern = r'(Total Price<\/th>)'
+            
+            match_end = re.search(pattern, header_row, re.IGNORECASE)
+            if match_end:
+                # Keep everything up to the end of "Total Price</th>", then close the row
+                return header_row[:match_end.end()] + '</tr>'
+            return header_row # Return original if Total Price not found
+        
+        # Pattern 2: Target the Data Rows (all <tr>...</tr> after the header)
+        def clean_data_row(row_match):
+            data_row = row_match.group(0)
+            
+            # Count <td>...</td> pairs to find the one for "Total Price" (it's the 7th column in the image)
+            # Fabric (1), Type (2), Color (3), Size (4), Qty (5), Unit Price (6), Total Price (7)
+            td_matches = list(re.finditer(r'<td.*?>.*?<\/td>', data_row, re.DOTALL | re.IGNORECASE))
+            
+            if len(td_matches) >= 7:
+                # The 7th match is the Total Price column (index 6 since it's 0-based)
+                total_price_td_end = td_matches[6].end()
+                
+                # Now, find the closing </tr> tag
+                tr_end_match = re.search(r'<\/tr>', data_row)
+                
+                if tr_end_match:
+                    tr_end_pos = tr_end_match.start()
+                    
+                    # Ensure the total_price_td_end is before the </tr>
+                    if total_price_td_end < tr_end_pos:
+                        # Reconstruct the row: everything before the end of 7th <td> + the final </tr>
+                        return data_row[:total_price_td_end] + data_row[tr_end_pos:]
+            
+            return data_row # Return original if criteria not met
+
+        # Split content into rows based on <tr> and </tr>
+        rows = re.split(r'(<tr>.*?<\/tr>)', html_content, flags=re.DOTALL | re.IGNORECASE)
+        
+        cleaned_rows = []
+        if rows:
+            # The first non-empty row segment is usually the header row
+            for i, row in enumerate(rows):
+                if not row.strip():
+                    continue
+
+                if i == 1: # The first actual <tr>...</tr> block (the header)
+                    cleaned_rows.append(clean_header(re.search(r'<tr>.*?<\/tr>', row, re.DOTALL | re.IGNORECASE)))
+                
+                elif '<tr>' in row and '</tr>' in row: # Data rows
+                    cleaned_rows.append(clean_data_row(re.search(r'<tr>.*?<\/tr>', row, re.DOTALL | re.IGNORECASE)))
+                
+                else: # Any text before/after the table (like wrapper divs)
+                    cleaned_rows.append(row)
+
+        return "".join(cleaned_rows).replace('None', '') # Final cleanup and reassembly
+    
     def get_print_content(self):
 
         order_no = self._get_parent_text('order_number')
@@ -198,6 +265,8 @@ class PrintExportDialog(QDialog):
             report_title = "Quotation / Estimate"   
         else: 
             report_title = "Order Summary"
+
+        cleaned_content_data = self._clean_table_html(self.content_data)
     
         html_content = f"""
         <html>
@@ -309,19 +378,17 @@ class PrintExportDialog(QDialog):
                 
                 <div class="item-details-section">
                     <div class="item-table-container">
-                        {self.content_data}
+                        {cleaned_content_data}
                     </div>
                 </div>
 
                 <div class="summary">
-                    <p style="font-size: 14pt; color: #d9534f; margin-top: 10px; border-top: 1px dashed #ccc; padding-top: 5px;">
-                        <b>GRAND TOTAL:</b> ₹ {grand_total}
-                    </p>
+                    {self._get_tax_info()[0]}
                 </div>
             </div>
             
             <div style="clear: both; margin-top: 10px;">
-                <h2 class="section-header">Remarks</h2>
+                <h2 class="section-header">Remark</h2>
                 <p>{remarks if remarks != "N/A" else "No special remarks."}</p>
             </div>
             
@@ -614,12 +681,7 @@ class PrintExportDialog(QDialog):
             self.share_via_whatsapp(file_path)
 
 class QuotationPreviewDialog(QDialog):
-    """
-    Dedicated dialog for Quotation printing/previewing only. 
-    Does NOT include Export or Share functions.
-    """
     def __init__(self, parent, content_data, **kwargs):
-        # We set document_type internally, but it's not strictly necessary here.
         super().__init__(parent, **kwargs)
         self.setWindowTitle("Quotation / Estimate Preview")
         self.content_data = content_data 
@@ -628,7 +690,6 @@ class QuotationPreviewDialog(QDialog):
 
         main_layout = QVBoxLayout(self)
 
-        # Print Options - Only Print and Preview buttons
         print_layout = QHBoxLayout()
         direct_print_btn = QPushButton("🖨 Direct Print")
         preview_btn = QPushButton("🔍 Print Preview")
@@ -637,12 +698,55 @@ class QuotationPreviewDialog(QDialog):
         print_layout.addWidget(preview_btn)
         main_layout.addLayout(print_layout)
 
-        # Connect Signals
         direct_print_btn.clicked.connect(self.direct_print)
         preview_btn.clicked.connect(self.show_preview)
         
-    # --- Data Retrieval Helper Methods (Copied/Adapted from original PrintExportDialog) ---
+    def _clean_table_html(self, html_content):
+        if not html_content:
+            return ""
+        def clean_header(match):
+            header_row = match.group(0)
+            pattern = r'(Total Price<\/th>)'
+            
+            match_end = re.search(pattern, header_row, re.IGNORECASE)
+            if match_end:
+                return header_row[:match_end.end()] + '</tr>'
+            return header_row # Return original if Total Price not found
+        def clean_data_row(row_match):
+            data_row = row_match.group(0)
+            
+            td_matches = list(re.finditer(r'<td.*?>.*?<\/td>', data_row, re.DOTALL | re.IGNORECASE))
+            
+            if len(td_matches) >= 7:
+                total_price_td_end = td_matches[6].end()
+                tr_end_match = re.search(r'<\/tr>', data_row)
+                if tr_end_match:
+                    tr_end_pos = tr_end_match.start()
+                    if total_price_td_end < tr_end_pos:
+                        return data_row[:total_price_td_end] + data_row[tr_end_pos:]
+            
+            return data_row # Return original if criteria not met
 
+        rows = re.split(r'(<tr>.*?<\/tr>)', html_content, flags=re.DOTALL | re.IGNORECASE)
+        
+        cleaned_rows = []
+        if rows:
+            is_header_found = False
+            for i, row_part in enumerate(rows):
+                if not row_part.strip():
+                    continue
+
+                if '<tr>' in row_part and '</tr>' in row_part:
+                    # This is a full row block
+                    if not is_header_found:
+                        cleaned_rows.append(clean_header(re.search(r'<tr>.*?<\/tr>', row_part, re.DOTALL | re.IGNORECASE)))
+                        is_header_found = True
+                    else:
+                        cleaned_rows.append(clean_data_row(re.search(r'<tr>.*?<\/tr>', row_part, re.DOTALL | re.IGNORECASE)))
+                else: # Any text before/after the table (like wrapper divs)
+                    cleaned_rows.append(row_part)
+        return "".join(cleaned_rows).replace('None', '') # Final cleanup and reassembly
+    
     def _get_parent_text(self, attribute_name, default="N/A"):
         parent = self.parent()
         if hasattr(parent, attribute_name) and getattr(parent, attribute_name):
@@ -760,15 +864,9 @@ class QuotationPreviewDialog(QDialog):
         printer = QPrinter(QPrinter.HighResolution)
         preview = QPrintPreviewDialog(printer, self)
         preview.paintRequested.connect(self.print_document)
-        
-        # Crucially, we do not add any Save/Share buttons here, 
-        # fulfilling the requirement to keep the quotation clean.
-        
         preview.exec_()
-    
-    # --- HTML Generation (Quotation Specific) ---
+
     def get_print_content(self):
-        # Collect only the fields required for the quotation
         order_no = self._get_parent_text('order_number')
         party_name = self._get_parent_text('party_name')
         order_date = self._get_parent_text('order_date') 
@@ -781,15 +879,16 @@ class QuotationPreviewDialog(QDialog):
         tax_summary_html, grand_total = self._get_tax_info()
         
         parent = self.parent()
-        image_base64_uri = parent._capture_canvas_as_base64() if hasattr(parent, '_capture_canvas_as_base64') else ""
-        
-        # Collect SELECTED options only
+        canvas_image_base64_uri = parent._capture_canvas_as_base64() if hasattr(parent, '_capture_canvas_as_base64') else ""
+        #reference_image_base64_uri = parent._get_current_reference_image_base64() if hasattr(parent, '_get_current_reference_image_base64') else ""
+
         collar_options_list = "".join(f"<li>{opt}</li>" for opt in [self._get_parent_checkbox_state('rb_self', 'collar_price_self'), self._get_parent_checkbox_state('rb_rib', 'collar_price_rib'), self._get_parent_checkbox_state('rb_patti', 'collar_price_patti')] if opt) or "<li>None Selected</li>"
         button_option_map = {'BUTTON': 'rb_button', 'PLAIN': 'rb_plain', 'BOX': 'rb_box', 'V+': 'rb_vplus'}
         button_options_list = "".join(f"<li>{self._get_parent_checkbox_state(attr)}</li>" for attr in button_option_map.values() if self._get_parent_checkbox_state(attr)) or "<li>None Selected (Default)</li>"
         printing_options_list = self._get_parent_printing_options()
         track_pant_options_list = self._get_parent_track_options()
 
+        cleaned_content_data = self._clean_table_html(self.content_data)
         html_content = f"""
         <html>
         <head>
@@ -845,7 +944,7 @@ class QuotationPreviewDialog(QDialog):
                     <td style="width: 40%; vertical-align: top; padding-right: 15px; text-align: center;">
                         <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Product Image</h3>
                         <div style="max-width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            {f'<img src="{image_base64_uri}" class="product-image-preview" alt="Product Design"/>' if image_base64_uri else '<p>No Product Image Selected (Uploaded Image Placeholder)</p>'}
+                            {f'<img src="{canvas_image_base64_uri}" class="product-image-preview" alt="Product Design"/>' if canvas_image_base64_uri else '<p>No Product Image Selected (Uploaded Image Placeholder)</p>'}
                         </div>
                     </td>
                 </tr>
@@ -871,7 +970,7 @@ class QuotationPreviewDialog(QDialog):
             <div class="main-content-footer">
                 <div class="item-details-section">
                     <div class="item-table-container">
-                        {self.content_data}
+                        {cleaned_content_data}
                     </div>
                 </div>
 
