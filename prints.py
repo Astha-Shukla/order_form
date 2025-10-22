@@ -880,7 +880,7 @@ class QuotationPreviewDialog(QDialog):
         
         parent = self.parent()
         canvas_image_base64_uri = parent._capture_canvas_as_base64() if hasattr(parent, '_capture_canvas_as_base64') else ""
-        #reference_image_base64_uri = parent._get_current_reference_image_base64() if hasattr(parent, '_get_current_reference_image_base64') else ""
+        reference_image_base64_uri = parent._get_current_reference_image_base64()
 
         collar_options_list = "".join(f"<li>{opt}</li>" for opt in [self._get_parent_checkbox_state('rb_self', 'collar_price_self'), self._get_parent_checkbox_state('rb_rib', 'collar_price_rib'), self._get_parent_checkbox_state('rb_patti', 'collar_price_patti')] if opt) or "<li>None Selected</li>"
         button_option_map = {'BUTTON': 'rb_button', 'PLAIN': 'rb_plain', 'BOX': 'rb_box', 'V+': 'rb_vplus'}
@@ -909,7 +909,7 @@ class QuotationPreviewDialog(QDialog):
                 .item-table th, .item-table td {{ border: 1px solid #ddd; padding: 6px; text-align: left; }}
                 .item-table th {{ background-color: #e9ecef; }}
                 .summary-container {{flex-basis: 35%; width: 35%; padding: 0; text-align: right; margin-top: 15px;}}
-                .product-image-preview {{ max-width: 100%; max-height: 250px; width: auto; height: auto; border: 1px solid #ccc; object-fit: contain;}}
+                .product-design-preview {{ max-width: 150px; max-height: 250px; width: auto; height: auto; border: 1px solid #ccc; object-fit: contain; display: block; margin: 0 auto;}}
                 .options-list {{list-style-type: disc; padding-left: 20px; margin: 0 0 10px 0; font-size: 10pt;}}
             </style>
         </head>
@@ -941,10 +941,16 @@ class QuotationPreviewDialog(QDialog):
             <h2 class="section-header">Product Design & Customization</h2>
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                 <tr>
-                    <td style="width: 40%; vertical-align: top; padding-right: 15px; text-align: center;">
+                    <td style="width: 50%; vertical-align: top; padding-right: 10px; text-align: center;">
                         <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Product Image</h3>
                         <div style="max-width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
                             {f'<img src="{canvas_image_base64_uri}" class="product-image-preview" alt="Product Design"/>' if canvas_image_base64_uri else '<p>No Product Image Selected (Uploaded Image Placeholder)</p>'}
+                        </div>
+                    </td>
+                    <td style="width: 50%; vertical-align: top; padding-right: 10px; text-align: center;">
+                        <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #d9534f;">Customer Reference</h3>
+                        <div style="max-width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                            {f'<img src="{reference_image_base64_uri}" class="reference-image-preview" width="230" height="250" alt="Customer Reference"/>' if reference_image_base64_uri else '<p>No Reference Image</p>'}
                         </div>
                     </td>
                 </tr>

@@ -19,7 +19,7 @@ TEMPLATE_DIR = os.path.join(MEDIA_ROOT, 'templates') # For blank shirt images (C
 REFERENCE_DIR = os.path.join(MEDIA_ROOT, 'references') # For customer-uploaded photos (Gallery source) 
 
 class ImageGalleryWindow(QDialog):
-    #image_selected = pyqtSignal(str)
+    image_selected = pyqtSignal(str)
     def __init__(self, media_dir, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Uploaded Image Gallery")
@@ -67,6 +67,11 @@ class ImageGalleryWindow(QDialog):
                     if col >= col_count:
                         col = 0
                         row += 1
+    def _image_clicked(self, path):
+        absolute_path = os.path.abspath(path) 
+    
+        self.image_selected.emit(absolute_path) # Emit the absolute path
+        self.accept()
 
 class ItemInputDialog(QDialog):
     def __init__(self, parent=None, is_view_only=False):
@@ -328,6 +333,7 @@ class EmployeeDetailsDialog(QDialog):
         }
 
 class OrderForm(QWidget):
+    REFERENCE_DIR = globals().get('REFERENCE_DIR')
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Order Form")
@@ -369,6 +375,52 @@ class OrderForm(QWidget):
         # Add row panel first
 
         self.main_layout.addStretch()
+
+    def open_gallery(self):
+        # self.REFERENCE_DIR should be a constant pointing to your media folder
+        self.image_gallery_window = ImageGalleryWindow(self.REFERENCE_DIR, parent=self)
+        
+        # Connect the signal to the slot (THIS IS CORRECT AND ESSENTIAL)
+        self.image_gallery_window.image_selected.connect(self._set_current_reference_image) 
+        
+        # Run the dialog. The code stops here until the user selects an image (self.accept) or cancels.
+        result = self.image_gallery_window.exec_()
+        
+        # --- ADD THIS LOGIC HERE ---
+        if result == QDialog.Accepted and self.current_reference_image_path:
+            # After a successful selection, the main form's display should update
+            # Optionally, call a method here to immediately show the image on the main form, 
+            # or enable the 'Generate Quotation' button.
+            print("Gallery closed. Path successfully set. Ready for quotation.")
+            
+            # If you were expecting the quotation to open immediately:
+            self.generate_quotation_preview()
+
+    def _get_current_reference_image_base64(self):
+        print(f"DEBUG: Stored path is: {self.current_reference_image_path}") # CHECK 1
+
+        if self.current_reference_image_path and os.path.exists(self.current_reference_image_path):
+            print(f"DEBUG: File EXISTS at path: {self.current_reference_image_path}") # CHECK 2
+            try:
+                with open(self.current_reference_image_path, "rb") as image_file:
+                    encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+                    
+                    ext = os.path.splitext(self.current_reference_image_path)[1].lower()
+                    mime = 'image/jpeg' if ext in ['.jpg', '.jpeg'] else 'image/png'
+                    if len(encoded_string) > 100:
+                        print("DEBUG: Base64 string generated successfully!")
+                    return f"data:{mime};base64,{encoded_string}"
+            except Exception as e:
+                print(f"Error converting reference image to base64: {e}") 
+                return ""
+        else:
+            # CHECK 5: The path is empty OR the file doesn't exist.
+            print(f"DEBUG: Path is None/Empty or file does not exist. os.path.exists returned {os.path.exists(self.current_reference_image_path) if self.current_reference_image_path else 'N/A'}")
+            return ""
+        
+    def _set_current_reference_image(self, image_path):
+        self.current_reference_image_path = image_path 
+        print(f"Reference image path set to: {self.current_reference_image_path}")
 
     def create_button(self, text, emoji, shortcut=None, size=(80, 80)):
         """ Helper to create styled buttons with emoji as icon (top) """
@@ -602,7 +654,9 @@ class OrderForm(QWidget):
 
             if temp_pixmap.save(destination_path):
                 print(f"Customer reference image saved to: {destination_path}")
-                
+                self.current_reference_image_path = destination_path
+                print(f"Reference image path set to: {self.current_reference_image_path}") # New Debug
+                    
             else:
                 print(f"Error: Could not save reference image to {destination_path}")
                         
