@@ -930,9 +930,9 @@ class QuotationPreviewDialog(QDialog):
                         </div>
                     </td>
                     <td style="width: 50%; vertical-align: top; padding-right: 10px; text-align: center;">
-                        <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #d9534f;">Customer Reference</h3>
+                        {f'<h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #d9534f;">Customer Reference</h3>' if reference_image_base64_uri else ''}
                         <div style="max-width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            {f'<img src="{reference_image_base64_uri}" class="reference-image-preview" width="230" height="250" alt="Customer Reference"/>' if reference_image_base64_uri else '<p>No Reference Image</p>'}
+                            {f'<img src="{reference_image_base64_uri}" class="reference-image-preview" width="230" height="250" alt="Customer Reference"/>' if reference_image_base64_uri else ''}
                         </div>
                     </td>
                 </tr>
