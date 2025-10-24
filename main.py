@@ -338,6 +338,7 @@ class OrderForm(QWidget):
         super().__init__()
         self.setWindowTitle("Order Form")
         self.setStyleSheet("background-color: #F5FFFA")
+        self.reference_image_paths = []
         self.current_reference_image_path = None
     
         # ✅ सबसे पहले image और बाकी variables init करो
@@ -391,26 +392,22 @@ class OrderForm(QWidget):
             print("Gallery closed. Path successfully set. Ready for quotation.")            
             self.generate_quotation_preview()
 
-    def _get_current_reference_image_base64(self):
-        print(f"DEBUG: Stored path is: {self.current_reference_image_path}") # CHECK 1
-
-        if self.current_reference_image_path and os.path.exists(self.current_reference_image_path):
-            print(f"DEBUG: File EXISTS at path: {self.current_reference_image_path}") # CHECK 2
-            try:
-                with open(self.current_reference_image_path, "rb") as image_file:
-                    encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-                    
-                    ext = os.path.splitext(self.current_reference_image_path)[1].lower()
-                    mime = 'image/jpeg' if ext in ['.jpg', '.jpeg'] else 'image/png'
-                    if len(encoded_string) > 100:
-                        print("DEBUG: Base64 string generated successfully!")
-                    return f"data:{mime};base64,{encoded_string}"
-            except Exception as e:
-                print(f"Error converting reference image to base64: {e}") 
-                return ""
-        else:
-            print(f"DEBUG: Path is None/Empty or file does not exist. os.path.exists returned {os.path.exists(self.current_reference_image_path) if self.current_reference_image_path else 'N/A'}")
-            return ""
+    def _get_reference_images_base64(self): # RENAMED FUNCTION
+        base64_uris = []
+        
+        # --- ITERATE OVER THE LIST OF PATHS ---
+        for path in self.reference_image_paths:
+            if path and os.path.exists(path):
+                try:
+                    with open(path, "rb") as image_file:
+                        encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+                        ext = os.path.splitext(path)[1].lower()
+                        mime = 'image/jpeg' if ext in ['.jpg', '.jpeg'] else 'image/png'
+                        base64_uris.append(f"data:{mime};base64,{encoded_string}")
+                except Exception as e:
+                    print(f"Error converting reference image to base64: {e}") 
+        # ---------------------------------------  
+        return base64_uris # Returns a list of URI strings
         
     def _set_current_reference_image(self, image_path):
         self.current_reference_image_path = image_path 
@@ -648,9 +645,13 @@ class OrderForm(QWidget):
 
             if temp_pixmap.save(destination_path):
                 print(f"Customer reference image saved to: {destination_path}")
-                self.current_reference_image_path = destination_path
-                print(f"Reference image path set to: {self.current_reference_image_path}") # New Debug
-                    
+                
+                # --- CHANGE HERE: Append to the list ---
+                if destination_path not in self.reference_image_paths:
+                    self.reference_image_paths.append(destination_path)
+                # ----------------------------------------
+                
+                print(f"Total reference images: {len(self.reference_image_paths)}") 
             else:
                 print(f"Error: Could not save reference image to {destination_path}")
                         

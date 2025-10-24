@@ -862,8 +862,7 @@ class QuotationPreviewDialog(QDialog):
         tax_summary_html, grand_total = self._get_tax_info(parent)
         
         canvas_image_base64_uri = parent._capture_canvas_as_base64() if hasattr(parent, '_capture_canvas_as_base64') else ""
-        reference_image_base64_uri = parent._get_current_reference_image_base64()
-
+        reference_image_base64_uris = parent._get_reference_images_base64()
         collar_options_list = "".join(f"<li>{opt}</li>" for opt in [self._get_parent_checkbox_state('rb_self', 'collar_price_self'), self._get_parent_checkbox_state('rb_rib', 'collar_price_rib'), self._get_parent_checkbox_state('rb_patti', 'collar_price_patti')] if opt) or "<li>None Selected</li>"
         button_option_map = {'BUTTON': 'rb_button', 'PLAIN': 'rb_plain', 'BOX': 'rb_box', 'V+': 'rb_vplus'}
         button_options_list = "".join(f"<li>{self._get_parent_checkbox_state(attr)}</li>" for attr in button_option_map.values() if self._get_parent_checkbox_state(attr)) or "<li>None Selected (Default)</li>"
@@ -873,13 +872,27 @@ class QuotationPreviewDialog(QDialog):
         cleaned_content_data = self._clean_table_html(self.content_data)
 
         # --- NEW: Reference Image Block HTML ---
-        reference_image_html_block = ""
-        if reference_image_base64_uri:
-            reference_image_html_block = f"""
-            <div style="clear: both; margin-top: 20px;">
-                <h2 class="section-header" style="background-color: #fce8e8; border-left: 5px solid #d9534f;">Customer Reference Image</h2>
-                <div style="text-align: center; padding: 10px; border: 1px solid #ddd; max-width: 300px; margin: 0 auto;">
-                    <img src="{reference_image_base64_uri}" class="reference-image-preview" style="max-width: 100%; max-height: 300px; height: auto; display: block; margin: 0 auto; object-fit: contain;" alt="Customer Reference"/>
+        reference_images_html = ""
+        if reference_image_base64_uris:
+            image_tags = "".join([
+                f"""
+                <div style="margin: 5px;">
+                    <img src="{uri}" 
+                            class="reference-image-preview"
+                            width="230"
+                            height="250" 
+                            style="display: block; border: 1px solid #ccc;"
+                            alt="Customer Reference Image"/>
+                </div>
+                """
+                for uri in reference_image_base64_uris
+            ])
+
+            reference_images_html = f"""
+            <div style="margin-top: 20px;">
+                <h2 class="section-header" style="background-color: #f0f0f0; border-left: 5px solid #007bff;">Customer Reference Images</h2>
+                <div style="display: flex; flex-wrap: wrap; justify-content: flex-start; padding: 10px;">
+                    {image_tags}
                 </div>
             </div>
             """
@@ -978,12 +991,9 @@ class QuotationPreviewDialog(QDialog):
                 <h2 class="section-header">Remark</h2>
                 <p>{remarks if remarks != "N/A" and remarks else "No special remarks."}</p>
             </div>
-            <td style="width: 50%; vertical-align: top; padding-right: 10px; text-align: center;">
-                        {f'<h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #d9534f;">Customer Reference</h3>' if reference_image_base64_uri else ''}
-                        <div style="max-width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            {f'<img src="{reference_image_base64_uri}" class="reference-image-preview" width="230" height="250" alt="Customer Reference"/>' if reference_image_base64_uri else ''}
-                        </div>
-                    </td>
+
+            {reference_images_html}
+            
             <div style="margin-top: 50px; text-align: center; font-size: 8pt; color: #777;">
                 <p>Signature (Seller)</p>
             </div>
