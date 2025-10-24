@@ -871,6 +871,19 @@ class QuotationPreviewDialog(QDialog):
         track_pant_options_list = self._get_parent_track_options()
 
         cleaned_content_data = self._clean_table_html(self.content_data)
+
+        # --- NEW: Reference Image Block HTML ---
+        reference_image_html_block = ""
+        if reference_image_base64_uri:
+            reference_image_html_block = f"""
+            <div style="clear: both; margin-top: 20px;">
+                <h2 class="section-header" style="background-color: #fce8e8; border-left: 5px solid #d9534f;">Customer Reference Image</h2>
+                <div style="text-align: center; padding: 10px; border: 1px solid #ddd; max-width: 300px; margin: 0 auto;">
+                    <img src="{reference_image_base64_uri}" class="reference-image-preview" style="max-width: 100%; max-height: 300px; height: auto; display: block; margin: 0 auto; object-fit: contain;" alt="Customer Reference"/>
+                </div>
+            </div>
+            """
+
         html_content = f"""
         <html>
         <head>
@@ -929,12 +942,6 @@ class QuotationPreviewDialog(QDialog):
                             {f'<img src="{canvas_image_base64_uri}" class="product-image-preview" alt="Product Design"/>' if canvas_image_base64_uri else '<p>No Product Image Selected (Uploaded Image Placeholder)</p>'}
                         </div>
                     </td>
-                    <td style="width: 50%; vertical-align: top; padding-right: 10px; text-align: center;">
-                        {f'<h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #d9534f;">Customer Reference</h3>' if reference_image_base64_uri else ''}
-                        <div style="max-width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            {f'<img src="{reference_image_base64_uri}" class="reference-image-preview" width="230" height="250" alt="Customer Reference"/>' if reference_image_base64_uri else ''}
-                        </div>
-                    </td>
                 </tr>
                 <tr>
                     <td style="width: 60%; vertical-align: top; border-left: 1px solid #ddd; padding-left: 15px;">
@@ -971,7 +978,12 @@ class QuotationPreviewDialog(QDialog):
                 <h2 class="section-header">Remark</h2>
                 <p>{remarks if remarks != "N/A" and remarks else "No special remarks."}</p>
             </div>
-            
+            <td style="width: 50%; vertical-align: top; padding-right: 10px; text-align: center;">
+                        {f'<h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #d9534f;">Customer Reference</h3>' if reference_image_base64_uri else ''}
+                        <div style="max-width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+                            {f'<img src="{reference_image_base64_uri}" class="reference-image-preview" width="230" height="250" alt="Customer Reference"/>' if reference_image_base64_uri else ''}
+                        </div>
+                    </td>
             <div style="margin-top: 50px; text-align: center; font-size: 8pt; color: #777;">
                 <p>Signature (Seller)</p>
             </div>
