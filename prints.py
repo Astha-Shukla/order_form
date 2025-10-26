@@ -1188,29 +1188,29 @@ class QuotationPreviewDialog(QDialog, ExportShareMixin):
                 </tr>
             </table>
 
-            <h2 class="section-header">Product Design & Customization</h2>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <h2 class="section-header" style="margin-top: 10px; margin-bottom: 5px;">Product Design & Customization</h2>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 0; margin-bottom: 0;">
                 <tr>
-                    <td style="width: 50%; vertical-align: top; padding-right: 10px; text-align: center;">
-                        <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Product Image</h3>
-                        <div style="max-width: 100%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
-                            {f'<img src="{canvas_image_base64_uri}" class="product-image-preview" alt="Product Design"/>' if canvas_image_base64_uri else '<p>No Product Image Selected (Uploaded Image Placeholder)</p>'}
+                    <td style="width: 50%; vertical-align: top; padding: 0 5px 0 0; text-align: center;">
+                        <h3 style="margin-top: 0; margin-bottom: 3px; font-size: 11pt; color: #007bff;">Product Image</h3>
+                        <div style="max-width: 100%; margin: 0 auto; line-height: 1;">
+                            {f'<img src="{canvas_image_base64_uri}" class="product-image-preview" alt="Product Design" style="max-height: 150px;"/>' if canvas_image_base64_uri else '<p style="margin: 0; font-size: 9pt;">No Product Image Selected</p>'}
                         </div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="width: 60%; vertical-align: top; border-left: 1px solid #ddd; padding-left: 15px;">
-                        <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Printing Options (Only Selected)</h3>
-                        <ul class="options-list">{printing_options_list}</ul>
+                    <td style="width: 50%; vertical-align: top; border-left: 1px solid #ddd; padding: 0 0 0 10px;">
+                        <h3 style="margin-top: 0; margin-bottom: 3px; font-size: 11pt; color: #007bff;">Printing Options (Only Selected)</h3>
+                        <ul class="options-list" style="margin-bottom: 3px;">{printing_options_list}</ul>
                         
-                        <h3 style="margin-top: 0; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Collar Options (Only Selected)</h3>
-                        <ul class="options-list">{collar_options_list}</ul>
+                        <h3 style="margin-top: 3px; margin-bottom: 3px; font-size: 11pt; color: #007bff;">Collar Options (Only Selected)</h3>
+                        <ul class="options-list" style="margin-bottom: 3px;">{collar_options_list}</ul>
                         
-                        <h3 style="margin-top: 5px; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Button Options (Only Selected)</h3>
-                        <ul class="options-list">{button_options_list}</ul>
+                        <h3 style="margin-top: 3px; margin-bottom: 3px; font-size: 11pt; color: #007bff;">Button Options (Only Selected)</h3>
+                        <ul class="options-list" style="margin-bottom: 3px;">{button_options_list}</ul>
 
-                        <h3 style="margin-top: 5px; margin-bottom: 5px; font-size: 11pt; color: #007bff;">Track Pant Options (Only Selected)</h3>
-                        <ul class="options-list">{track_pant_options_list}</ul>
+                        <h3 style="margin-top: 3px; margin-bottom: 3px; font-size: 11pt; color: #007bff;">Track Pant Options (Only Selected)</h3>
+                        <ul class="options-list" style="margin-bottom: 0;">{track_pant_options_list}</ul>
                     </td>
                 </tr>
             </table>
