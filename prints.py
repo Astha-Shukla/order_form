@@ -10,6 +10,248 @@ from docx import Document
 from pptx import Presentation
 from pptx.util import Inches
 import re
+
+class ExportShareMixin:
+    """
+    Mixin class containing all the export (PDF, Image, Excel, Word, PPT)
+    and WhatsApp sharing functionality for printing dialogs.
+    
+    Requires the inheriting class to have:
+    - self.parent() method (to access main window variables)
+    - self.get_print_content() method (to get the HTML to print/save)
+    - self.print_document(printer) method (to print the document)
+    """
+
+    def show_export_menu(self):
+        """Shows the format options for local file saving."""
+        menu = QMenu(self)
+
+        pdf_action = menu.addAction("Save to PDF (*.pdf)")
+        # Note: Set show_msg=True to confirm save, as this is a direct save action
+        pdf_action.triggered.connect(lambda: self._perform_pdf_save(None, show_msg=True))
+
+        image_action = menu.addAction("Save to Image (*.png, *.jpg)")
+        image_action.triggered.connect(lambda: self._perform_image_save(None, show_msg=True)) 
+        menu.addSeparator()
+
+        excel_action = menu.addAction("Save to Excel (*.xlsx)")
+        excel_action.triggered.connect(lambda: self._perform_excel_save(None, show_msg=True))
+
+        word_action = menu.addAction("Save to Word (*.docx)")
+        word_action.triggered.connect(lambda: self._perform_word_ppt_save(None, 'word', show_msg=True))
+
+        ppt_action = menu.addAction("Save to PowerPoint (*.pptx)")
+        ppt_action.triggered.connect(lambda: self._perform_word_ppt_save(None, 'ppt', show_msg=True))
+        
+        menu.exec_(QCursor.pos())
+
+    def _perform_pdf_save(self, fileName=None, show_msg=False):
+        order_no = self.parent().order_number.text() if hasattr(self.parent(), 'order_number') else "temp" 
+        if fileName is None:
+            fileName, _ = QFileDialog.getSaveFileName(
+                self, "Save PDF for Sharing", f"Order_{order_no}.pdf", "PDF Files (*.pdf)"
+            )
+            if not fileName: return None
+            # If the user chose a name via dialog, we want to show a success message
+            show_msg = True 
+        
+        printer = QPrinter(QPrinter.HighResolution)
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setOutputFileName(fileName)
+        self.print_document(printer) # <-- REQUIRES print_document METHOD
+        
+        if show_msg:
+            QMessageBox.information(self, "Success", f"PDF saved to:\n{fileName}")
+        return fileName
+
+    def _perform_excel_save(self, fileName=None, show_msg=False):
+        order_no = self.parent().order_number.text() if hasattr(self.parent(), 'order_number') else "temp" 
+        if fileName is None:
+            fileName, _ = QFileDialog.getSaveFileName(
+                self, "Save Excel for Sharing", f"Order_{order_no}.xlsx", "Excel Files (*.xlsx)"
+            )
+            if not fileName: return None
+            show_msg = True
+        try:
+            from openpyxl import Workbook
+            wb = Workbook()
+            ws = wb.active
+            # Simplified Excel content extraction (adapt as needed)
+            ws['A1'] = "Order No:"
+            ws['B1'] = self.parent().order_number.text() if hasattr(self.parent(), 'order_number') else "N/A"
+            ws['A2'] = "Party Name:"
+            ws['B2'] = self.parent().party_name.text() if hasattr(self.parent(), 'party_name') else "N/A"
+            ws['A4'] = "Item Details (Raw Content):"
+            # NOTE: self.content_data is accessed directly from the inheriting class
+            ws['A5'] = self.content_data 
+            wb.save(fileName)
+            if show_msg:
+                QMessageBox.information(self, "Success", f"Excel file saved to:\n{fileName}")
+            return fileName
+
+        except ImportError:
+            QMessageBox.critical(self, "Error", "The 'openpyxl' library is required for Excel export. Please install it.")
+            return None
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred during Excel export: {e}")
+            return None
+
+    def _perform_image_save(self, fileName=None, show_msg=False):
+
+        order_no = self.parent().order_number.text() if hasattr(self.parent(), 'order_number') else "temp"
+        if fileName is None:
+            fileName, _ = QFileDialog.getSaveFileName(
+                self, "Save Image for Sharing", f"Order_{order_no}.png", "Image Files (*.png);;JPEG Files (*.jpg)"
+            )
+            if not fileName: return None
+            show_msg = True        
+
+        doc = QTextDocument()
+        doc.setHtml(self.get_print_content())
+        image_size = doc.size().toSize()
+        if image_size.isEmpty(): image_size = QSize(800, 1000)           
+        image = QPixmap(image_size)
+        image.fill(self.palette().window().color())
+        painter = QPainter(image)
+        doc.drawContents(painter, QRectF(image.rect())) 
+        painter.end()
+        image.save(fileName)
+        if show_msg:
+            QMessageBox.information(self, "Success", f"Image saved to:\n{fileName}")
+        return fileName
+
+    def _perform_word_ppt_save(self, fileName=None, file_type='word', show_msg=False):
+        
+        order_no = self.parent().order_number.text() if hasattr(self.parent(), 'order_number') else "N/A"
+        party_name = self.parent().party_name.text() if hasattr(self.parent(), 'party_name') else "N/A"
+        
+        if file_type == 'word':
+            filter_str, default_ext, title_verb = "Word Documents (*.docx)", ".docx", "Document"
+        else: # ppt
+            filter_str, default_ext, title_verb = "PowerPoint Presentations (*.pptx)", ".pptx", "Presentation"
+        
+        if fileName is None:
+            title = f"Save {file_type.title()} for Sharing"
+            fileName, _ = QFileDialog.getSaveFileName(
+                self, title, f"Order_{order_no}{default_ext}", filter_str
+            )
+            if not fileName: return None
+            show_msg = True
+
+        try:
+            if file_type == 'word':
+                from docx import Document    
+                doc = Document()
+                doc.add_heading('Order Report', 0)
+                doc.add_paragraph(f'Order No: {order_no}')
+                doc.add_paragraph(f'Party Name: {party_name}')
+                doc.add_heading('Item Details:', level=2)
+                doc.add_paragraph(self.content_data) 
+                
+                doc.save(fileName)
+
+            elif file_type == 'ppt':
+                from pptx import Presentation
+                from pptx.util import Inches
+                prs = Presentation()
+                slide_layout = prs.slide_layouts[0]
+                slide = prs.slides.add_slide(slide_layout)
+                
+                title = slide.shapes.title
+                title.text = "Order Report"
+                
+                body = slide.placeholders[1]
+                body.text = f"Order No: {order_no}\nParty Name: {party_name}\n\nItem Details:\n{self.content_data}"               
+                prs.save(fileName)
+            if show_msg:
+                QMessageBox.information(self, "Success", f"{title_verb} saved to:\n{fileName}")
+            return fileName
+        except ImportError:
+            QMessageBox.critical(self, "Error", f"The required library for {file_type.title()} export is missing. Please install 'python-docx' or 'python-pptx'.")
+            return None
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"An error occurred during {file_type.title()} export: {e}")
+            return None
+
+    # The correct, detailed share_via_whatsapp function
+    def share_via_whatsapp(self, file_path=None):
+        """Opens WhatsApp link, prompting user to manually attach the file."""
+        if file_path is None:
+            QMessageBox.warning(self, "Error", "Please export the file first.")
+            return
+
+        order_no = self.parent().order_number.text() if hasattr(self.parent(), 'order_number') else "N/A"
+        ext = file_path.split('.')[-1].upper()
+        message = f"Please find the Order Report (Order No: {order_no}) in {ext} format."
+        encoded_message = QUrl.toPercentEncoding(message).data().decode()
+        url = f"https://web.whatsapp.com/send?text={encoded_message}" 
+        
+        # 1. Open the WhatsApp link
+        webbrowser.open(url)
+
+        # 2. Open the file's containing folder
+        try:
+            if sys.platform == 'win32':
+                os.startfile(os.path.dirname(file_path)) 
+            elif sys.platform == 'darwin':
+                os.system(f'open -R "{file_path}"')
+            else:
+                os.system(f'xdg-open "{os.path.dirname(file_path)}"')
+                
+            QMessageBox.information(
+                self, 
+                "Action Required 🚨", 
+                f"1. WhatsApp has opened in your browser/desktop app.\n"
+                f"2. The file folder has also opened.\n\n"
+                f"Please **drag and drop** the file onto the chat window to share it!"
+            )
+        except Exception as e:
+            QMessageBox.warning(
+                self, 
+                "Action Required 🚨", 
+                f"WhatsApp link opened. Could not open file explorer automatically.\n\n"
+                f"Please manually navigate to and attach the saved file:\n\n{file_path}"
+            )
+
+    def show_whatsapp_share_menu(self):
+        """Shows format options for sharing, using the reusable save functions."""
+        menu = QMenu(self)
+        
+        pdf_action = menu.addAction("Share as PDF")
+        pdf_action.triggered.connect(lambda: self._share_file_and_whatsapp(self._perform_pdf_save))
+        
+        image_action = menu.addAction("Share as Image (PNG/JPG)")
+        image_action.triggered.connect(lambda: self._share_file_and_whatsapp(self._perform_image_save))
+        
+        menu.addSeparator()
+        excel_action = menu.addAction("Share as Excel (.xlsx)")
+        excel_action.triggered.connect(lambda: self._share_file_and_whatsapp(self._perform_excel_save))
+        
+        word_action = menu.addAction("Share as Word (.docx)")
+        word_action.triggered.connect(lambda: self._share_file_and_whatsapp(self._perform_word_ppt_save, 'word'))
+        
+        # NOTE: ppt_action is included here for completeness, though often not shared via WA
+        # ppt_action = menu.addAction("Share as PowerPoint (.pptx)")
+        # ppt_action.triggered.connect(lambda: self._share_file_and_whatsapp(self._perform_word_ppt_save, 'ppt'))
+
+
+        menu.exec_(QCursor.pos())
+
+    def _share_file_and_whatsapp(self, save_func, file_type=None):
+        """Internal helper to call the save function and then the share function."""
+        file_path = None
+        
+        # Fix the argument passing issue from the previous response
+        if save_func == self._perform_word_ppt_save:
+            # Need to pass file_type and explicitly set show_msg=False
+            file_path = save_func(None, file_type, show_msg=False) 
+        else:
+            # All other save functions accept (fileName, show_msg)
+            file_path = save_func(None, show_msg=False) 
+            
+        if file_path:
+            self.share_via_whatsapp(file_path)
+
 class PrintExportDialog(QDialog):
     def __init__(self, parent, content_data, document_type="ORDER", **kwargs):
         super().__init__(parent, **kwargs)
@@ -670,10 +912,10 @@ class PrintExportDialog(QDialog):
         if file_path:
             self.share_via_whatsapp(file_path)
 
-class QuotationPreviewDialog(QDialog):
+class QuotationPreviewDialog(QDialog, ExportShareMixin):
     def __init__(self, parent, content_data, **kwargs):
-        super().__init__(parent, **kwargs)
-        self.setWindowTitle("Quotation / Estimate Preview")
+        QDialog.__init__(self, parent, **kwargs)
+        self.setWindowTitle("Quotation")
         self.content_data = content_data 
         self.document_type = "QUOTATION"
         self.setGeometry(200, 200, 350, 150) # Smaller dialog for simple actions
@@ -1002,3 +1244,30 @@ class QuotationPreviewDialog(QDialog):
         </html>
         """
         return html_content
+    
+    def print_document(self, printer):
+        doc = QTextDocument()
+        doc.setHtml(self.get_print_content())
+        doc.print_(printer)
+
+    def direct_print(self):
+        printer = QPrinter(QPrinter.HighResolution)
+        dialog = QPrintDialog(printer, self)
+        if dialog.exec_() == QDialog.Accepted:
+            self.print_document(printer)
+    def show_preview(self):
+        printer = QPrinter(QPrinter.HighResolution)
+        preview = QPrintPreviewDialog(printer, self)
+        preview.paintRequested.connect(self.print_document)
+
+        export_btn = QPushButton("🔽 Save Options")
+        export_btn.setToolTip("Save to PDF/Excel/Image/Word/PPT")
+        export_btn.clicked.connect(self.show_export_menu)
+        preview.layout().addWidget(export_btn) 
+
+        share_btn = QPushButton("📱 Share via WhatsApp")
+        share_btn.setToolTip("Share Order as PDF via WhatsApp")
+        share_btn.clicked.connect(self.show_whatsapp_share_menu)
+        preview.layout().addWidget(share_btn)
+
+        preview.exec_()
