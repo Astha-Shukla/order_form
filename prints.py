@@ -1463,3 +1463,9 @@ class JobWorkPreviewDialog(QuotationPreviewDialog):
         </html>
         """
         return html_content
+    
+class CuttingJobPreviewDialog(JobWorkPreviewDialog):
+
+    def __init__(self, parent=None, html_content=""):
+        super().__init__(parent, html_content)
+        self.setWindowTitle("Cutting Job Slip Preview")
