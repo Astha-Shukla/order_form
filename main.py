@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
 
 from PyQt5.QtGui import QPixmap,QPainter, QPen, QColor
 from PyQt5.QtCore import Qt, QDate, QPointF,QByteArray, QBuffer, QIODevice, pyqtSignal
-from prints import PrintExportDialog, QuotationPreviewDialog
+from prints import PrintExportDialog, QuotationPreviewDialog, JobWorkPreviewDialog
 
 MEDIA_ROOT = os.path.join(os.getcwd(), 'media')  # The main folder
 TEMPLATE_DIR = os.path.join(MEDIA_ROOT, 'templates') # For blank shirt images (ComboBox source)
@@ -216,6 +216,7 @@ class ItemInputDialog(QDialog):
             self.main_layout.addSpacing(25) 
             self.main_layout.addLayout(action_buttons_layout)
             self.main_layout.addStretch(1) # Final stretch to push everything up
+            self.job_btn.clicked.connect(self._open_job_work_dialog)
 
         if not self.is_view_only:
             self.main_layout.addSpacing(5)
@@ -258,6 +259,48 @@ class ItemInputDialog(QDialog):
             "Remark": self.remark_input.text()
         }
     
+    def _open_job_work_dialog(self):
+        
+        item_data = self.get_data() 
+        try:
+            quantity = float(item_data['Qty'])
+            unit_price = float(item_data['Unit'])
+            total_price = quantity * unit_price
+        except ValueError:
+            QMessageBox.warning(self, "Invalid Data", "Quantity and Unit Price must be valid numbers.")
+            return
+
+        product_details = f"{item_data['Fabric']} {item_data['Type']} ({item_data['Color']})"
+        html_content = f"""
+        <table style="width:100%; border-collapse: collapse;" class="item-table">
+            <thead>
+                <tr>
+                    <th style="border: 1px solid #ddd;">Fabric</th>
+                    <th style="border: 1px solid #ddd;">Type</th>
+                    <th style="border: 1px solid #ddd;">Color</th>
+                    <th style="border: 1px solid #ddd;">Size</th>
+                    <th style="border: 1px solid #ddd;">Quantity</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="border: 1px solid #ddd;">{item_data['Fabric']}</td>
+                    <td style="border: 1px solid #ddd;">{item_data['Type']}</td>
+                    <td style="border: 1px solid #ddd;">{item_data['Color']}</td>
+                    <td style="border: 1px solid #ddd;">{item_data['Size']}</td>
+                    <td style="border: 1px solid #ddd;">{item_data['Qty']}</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        try:
+            dialog = JobWorkPreviewDialog(self.parent(), html_content)
+            dialog.exec()
+        except NameError:
+            QMessageBox.critical(self, "Error", "JobWorkPreviewDialog class not found. Ensure 'from prints import JobWorkPreviewDialog' is correct.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Could not launch Job Work Dialog: {e}")
+
 class EmployeeDetailsDialog(QDialog):
     def __init__(self, item_type, current_data=None, parent=None):
         super().__init__(parent)
@@ -1321,6 +1364,8 @@ class OrderForm(QWidget):
                 pass # Ignore if nothing is connected
             dialog.accepted.connect(dialog.reject) # Makes the 'OK/Done' button behave like 'Close'
              
+    def _job_work_action(self, row):
+        pass
             
     def _view_item(self, row):
         print(f"Viewing details for item at row: {row}")

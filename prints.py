@@ -1271,3 +1271,195 @@ class QuotationPreviewDialog(QDialog, ExportShareMixin):
         preview.layout().addWidget(share_btn)
 
         preview.exec_()
+
+class JobWorkPreviewDialog(QuotationPreviewDialog):
+    
+    def __init__(self, parent, content_data, **kwargs):
+        super().__init__(parent, content_data, **kwargs)
+        self.setWindowTitle("Job Work (Stretching)")
+        self.document_type = "JOB_WORK"
+
+    def _clean_table_html(self, html_content):
+        
+        if not html_content:
+            return ""
+        
+        def clean_header(match):
+            header_row = match.group(0)
+            header_row = re.sub(r'<th[^>]*>Total Price<\/th>', '', header_row, flags=re.IGNORECASE)
+            header_row = re.sub(r'<th[^>]*>Status<\/th>', '', header_row, flags=re.IGNORECASE)
+            header_row = re.sub(r'<th[^>]*>Unit<\/th>', '', header_row, flags=re.IGNORECASE)
+            
+            return header_row
+            
+        def clean_data_row(row_match):
+            data_row = row_match.group(0)
+            td_matches = list(re.finditer(r'<td.*?<\/td>', data_row, re.DOTALL | re.IGNORECASE))
+
+            if len(td_matches) >= 8:
+                new_row_content = "".join(td_matches[i].group(0) for i in range(5))
+                tr_end_match = re.search(r'<\/tr>', data_row)
+                if tr_end_match:
+                    return f'<tr>{new_row_content}{data_row[tr_end_match.start():]}'
+            
+            return data_row 
+
+        rows = re.split(r'(<tr>.*?<\/tr>)', html_content, flags=re.DOTALL | re.IGNORECASE)
+        
+        cleaned_rows = []
+        if rows:
+            is_header_found = False
+            for i, row_part in enumerate(rows):
+                if not row_part.strip():
+                    continue
+
+                if '<tr>' in row_part and '</tr>' in row_part:
+                    row_match = re.search(r'<tr>.*?<\/tr>', row_part, re.DOTALL | re.IGNORECASE)
+                    if row_match:
+                        if not is_header_found:
+                            cleaned_rows.append(clean_header(row_match))
+                            is_header_found = True
+                        else:
+                            cleaned_rows.append(clean_data_row(row_match))
+                else: 
+                    cleaned_rows.append(row_part)
+        return "".join(cleaned_rows).replace('None', '')
+
+    def _get_tax_info(self, main_window):
+        return "", "0.00"
+
+    def get_print_content(self):
+        order_no = self._get_parent_text('order_number')
+        barcode = self._get_parent_text('barcode')
+        employee_name = self._get_parent_text('employee_name', 'N/A') # Assuming employee_name field exists on parent
+        remarks = self._get_parent_text('remark_input') 
+
+        parent = self.parent()
+        tax_summary_html, grand_total = self._get_tax_info(parent) # Will be empty
+        
+        canvas_image_base64_uri = parent._capture_canvas_as_base64() if hasattr(parent, '_capture_canvas_as_base64') else ""
+        reference_image_base64_uris = parent._get_reference_images_base64()
+        
+        collar_options_list = "".join(f"<li>{opt}</li>" for opt in [self._get_parent_checkbox_state('rb_self', 'collar_price_self'), self._get_parent_checkbox_state('rb_rib', 'collar_price_rib'), self._get_parent_checkbox_state('rb_patti', 'collar_price_patti')] if opt) or "<li>None Selected</li>"
+        collar_options_list = re.sub(r' \(Price: .*?\)', '', collar_options_list) 
+        
+        button_option_map = {'BUTTON': 'rb_button', 'PLAIN': 'rb_plain', 'BOX': 'rb_box', 'V+': 'rb_vplus'}
+        button_options_list = "".join(f"<li>{self._get_parent_checkbox_state(attr)}</li>" for attr in button_option_map.values() if self._get_parent_checkbox_state(attr)) or "<li>None Selected (Default)</li>"
+        
+        printing_options_list = self._get_parent_printing_options()
+        printing_options_list = re.sub(r' \(Price: .*? INR\)', '', printing_options_list)
+
+        track_pant_options_list = self._get_parent_track_options()
+        track_pant_options_list = re.sub(r' \(Price: .*? INR\)', '', track_pant_options_list)
+
+        cleaned_content_data = self._clean_table_html(self.content_data)
+
+        reference_images_html = ""
+        if reference_image_base64_uris:
+            image_tags = "".join([
+                f"""
+                <div style="margin: 5px;">
+                    <img src="{uri}" 
+                                class="reference-image-preview"
+                                width="230"
+                                height="250" 
+                                style="display: block; border: 1px solid #ccc;"
+                                alt="Customer Reference Image"/>
+                </div>
+                """
+                for uri in reference_image_base64_uris
+            ])
+
+            reference_images_html = f"""
+            <div style="margin-top: 20px;">
+                <h2 class="section-header" style="background-color: #f0f0f0; border-left: 5px solid #007bff;">Uploaded Reference Images</h2>
+                <div style="display: flex; flex-wrap: wrap; justify-content: flex-start; padding: 10px;">
+                    {image_tags}
+                </div>
+            </div>
+            """
+
+        html_content = f"""
+        <html>
+        <head>
+            <style>
+                @page {{ size: A4; margin: 20mm; }} 
+                body {{ font-family: 'Arial', sans-serif; font-size: 10pt; line-height: 1.4; }}
+                h1 {{ text-align: center; margin-bottom: 5px; color: #333; }}
+                hr {{ border: 0.5px solid #ccc; }}
+                .company-header {{ text-align: center; margin-bottom: 20px; }}
+                .company-header h2 {{ margin: 0; font-size: 16pt; color: #d9534f; }}
+                .company-header p {{ margin: 2px 0; font-size: 9pt; color: #555; }}
+                .header-table {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; }}
+                .header-table td {{ padding: 3px 5px; vertical-align: top; }}
+                .section-header {{ background-color: #f0f0f0; padding: 5px; margin-top: 15px; margin-bottom: 5px; border-left: 5px solid #007bff; font-size: 12pt; }}
+                .item-table-container {{ overflow-x: auto; }}
+                .item-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+                .item-table th, .item-table td {{ border: 1px solid #ddd; padding: 6px; text-align: left; }}
+                .item-table th {{ background-color: #e9ecef; }}
+                .product-design-preview {{ max-width: 150px; max-height: 250px; width: auto; height: auto; border: 1px solid #ccc; object-fit: contain; display: block; margin: 0 auto;}}
+                .options-list {{list-style-type: disc; padding-left: 20px; margin: 0 0 10px 0; font-size: 10pt;}}
+            </style>
+        </head>
+        <body>
+            <div class="company-header">
+                <h2>JOB WORK (STRETCHING) SLIP</h2>
+                <p>Company Logo and Company Details</p>
+                <hr>
+            </div>
+
+            <table class="header-table">
+                <tr>
+                    <td width="33%"><b>Order No:</b> {order_no}</td>
+                    <td width="33%"><b>Barcode:</b> {barcode}</td>
+                    <td width="34%"><b>Employee Name:</b> {employee_name}</td>
+                </tr>
+            </table>
+
+            <h2 class="section-header" style="margin-top: 10px; margin-bottom: 5px;">Product Design & Customization</h2>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 0; margin-bottom: 0;">
+                <tr>
+                    <td style="width: 50%; vertical-align: top; padding: 0 5px 0 0; text-align: center;">
+                        <h3 style="margin-top: 0; margin-bottom: 3px; font-size: 11pt; color: #007bff;">Product Image</h3>
+                        <div style="max-width: 100%; margin: 0 auto; line-height: 1;">
+                            {f'<img src="{canvas_image_base64_uri}" class="product-design-preview" alt="Product Design" style="max-height: 150px;"/>' if canvas_image_base64_uri else '<p style="margin: 0; font-size: 9pt;">No Product Image</p>'}
+                        </div>
+                    </td>
+                </tr>
+                <tr>    
+                    <td style="width: 50%; vertical-align: top; border-left: 1px solid #ddd; padding: 0 0 0 10px;">
+                        <h3 style="margin-top: 0; margin-bottom: 3px; font-size: 11pt; color: #007bff;">Printing Options (Only Selected)</h3>
+                        <ul class="options-list" style="margin-bottom: 3px;">{printing_options_list}</ul>
+                        
+                        <h3 style="margin-top: 3px; margin-bottom: 3px; font-size: 11pt; color: #007bff;">Collar Options (Only Selected)</h3>
+                        <ul class="options-list" style="margin-bottom: 3px;">{collar_options_list}</ul>
+                        
+                        <h3 style="margin-top: 3px; margin-bottom: 3px; font-size: 11pt; color: #007bff;">Button Options (Only Selected)</h3>
+                        <ul class="options-list" style="margin-bottom: 3px;">{button_options_list}</ul>
+
+                        <h3 style="margin-top: 3px; margin-bottom: 3px; font-size: 11pt; color: #007bff;">Track Pant Options (Only Selected)</h3>
+                        <ul class="options-list" style="margin-bottom: 0;">{track_pant_options_list}</ul>
+                    </td>
+                </tr>
+            </table>
+
+            <h2 class="section-header">Item Details</h2>
+            <div class="item-table-container">
+                {cleaned_content_data}
+            </div>
+
+            {tax_summary_html} <div style="clear: both; margin-top: 10px;">
+                <h2 class="section-header">Remark</h2>
+                <p>{remarks if remarks != "N/A" and remarks else "No special remarks."}</p>
+            </div>
+
+            {reference_images_html}
+            
+            <div style="margin-top: 50px; text-align: center; font-size: 8pt; color: #777;">
+                <p>Signature (Job Work Manager)</p>
+            </div>
+
+        </body>
+        </html>
+        """
+        return html_content
