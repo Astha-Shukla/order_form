@@ -1107,28 +1107,56 @@ class QuotationPreviewDialog(QDialog, ExportShareMixin):
         # --- NEW: Reference Image Block HTML ---
         reference_images_html = ""
         if reference_image_base64_uris:
-            image_tags = "".join([
-                f"""
-                <div style="margin: 5px;">
-                    <img src="{uri}" 
-                            class="reference-image-preview"
+            image_table_rows = ""
+            num_images = len(reference_image_base64_uris)
+            
+            # Iterate through the list, grabbing two URIs at a time
+            for i in range(0, num_images, 2):
+                uri1 = reference_image_base64_uris[i]
+                uri2 = reference_image_base64_uris[i+1] if i + 1 < num_images else None
+                
+                # Cell 1 (always present)
+                cell1 = f"""
+                    <td style="width: 50%; padding: 5 15px; text-align: center; vertical-align: top; border: none;">
+                        <img src="{uri1}" 
                             width="230"
-                            height="250" 
-                            style="display: block; border: 1px solid #ccc;"
-                            alt="Customer Reference Image"/>
-                </div>
+                            height="250"
+                            style="max-width: 100%; max-height: 250px; 
+                                    border: 1px solid #ccc; object-fit: contain; display: block; margin: 0 auto;"
+                            alt="Reference Image 1"/>
+                    </td>
                 """
-                for uri in reference_image_base64_uris
-            ])
+                
+                # Cell 2 (optional)
+                cell2 = ""
+                if uri2:
+                    cell2 = f"""
+                        <td style="width: 50%; padding: 5 15px; text-align: center; vertical-align: top; border: none;">
+                            <img src="{uri2}" 
+                                width="230"
+                                height="250"
+                                style="max-width: 100%; max-height: 250px; 
+                                        border: 1px solid #ccc; object-fit: contain; display: block; margin: 0 auto;"
+                                alt="Reference Image 2"/>
+                        </td>
+                    """
+                else:
+                    cell2 = '<td style="width: 50%; border: none;"></td>' 
+                
+                image_table_rows += f'<tr style="page-break-inside: avoid;">{cell1}{cell2}</tr>'
 
+            # Final HTML structure for the image block
             reference_images_html = f"""
-            <div style="margin-top: 20px;">
+            <div style="margin-top: 20px; clear: both;">
                 <h2 class="section-header" style="background-color: #f0f0f0; border-left: 5px solid #007bff;">Customer Reference Images</h2>
-                <div style="display: flex; flex-wrap: wrap; justify-content: flex-start; padding: 10px;">
-                    {image_tags}
-                </div>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 5px;">
+                    <tbody>
+                        {image_table_rows}
+                    </tbody>
+                </table>
             </div>
             """
+        # --- END: FIX FOR REFERENCE IMAGES ---
 
         html_content = f"""
         <html>
@@ -1347,28 +1375,56 @@ class JobWorkPreviewDialog(QuotationPreviewDialog):
 
         reference_images_html = ""
         if reference_image_base64_uris:
-            image_tags = "".join([
-                f"""
-                <div style="margin: 5px;">
-                    <img src="{uri}" 
-                                class="reference-image-preview"
-                                width="230"
-                                height="250" 
-                                style="display: block; border: 1px solid #ccc;"
-                                alt="Customer Reference Image"/>
-                </div>
+            image_table_rows = ""
+            num_images = len(reference_image_base64_uris)
+            
+            # Iterate through the list, grabbing two URIs at a time
+            for i in range(0, num_images, 2):
+                uri1 = reference_image_base64_uris[i]
+                uri2 = reference_image_base64_uris[i+1] if i + 1 < num_images else None
+                
+                # Cell 1 (always present)
+                cell1 = f"""
+                    <td style="width: 50%; padding: 5 15px; text-align: center; vertical-align: top; border: none;">
+                        <img src="{uri1}" 
+                            width="230"
+                            height="250"
+                            style="max-width: 100%; max-height: 250px; 
+                                    border: 1px solid #ccc; object-fit: contain; display: block; margin: 0 auto;"
+                            alt="Reference Image 1"/>
+                    </td>
                 """
-                for uri in reference_image_base64_uris
-            ])
+                
+                # Cell 2 (optional)
+                cell2 = ""
+                if uri2:
+                    cell2 = f"""
+                        <td style="width: 50%; padding: 5 15px; text-align: center; vertical-align: top; border: none;">
+                            <img src="{uri2}" 
+                                width="230"
+                                height="250"
+                                style="max-width: 100%; max-height: 250px; 
+                                        border: 1px solid #ccc; object-fit: contain; display: block; margin: 0 auto;"
+                                alt="Reference Image 2"/>
+                        </td>
+                    """
+                else:
+                    cell2 = '<td style="width: 50%; border: none;"></td>' 
+                
+                image_table_rows += f'<tr style="page-break-inside: avoid;">{cell1}{cell2}</tr>'
 
+            # Final HTML structure for the image block
             reference_images_html = f"""
-            <div style="margin-top: 20px;">
-                <h2 class="section-header" style="background-color: #f0f0f0; border-left: 5px solid #007bff;">Uploaded Reference Images</h2>
-                <div style="display: flex; flex-wrap: wrap; justify-content: flex-start; padding: 10px;">
-                    {image_tags}
-                </div>
+            <div style="margin-top: 20px; clear: both;">
+                <h2 class="section-header" style="background-color: #f0f0f0; border-left: 5px solid #007bff;">Customer Reference Images</h2>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 5px;">
+                    <tbody>
+                        {image_table_rows}
+                    </tbody>
+                </table>
             </div>
             """
+        # --- END: FIX FOR REFERENCE IMAGES ---
 
         html_content = f"""
         <html>
