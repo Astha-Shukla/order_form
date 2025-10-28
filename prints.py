@@ -4,7 +4,7 @@ import webbrowser
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QFileDialog, QMenu, QApplication)
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
 from PyQt5.QtGui import QTextDocument, QCursor, QPixmap, QPainter
-from PyQt5.QtCore import QUrl, QSize, QRectF, QByteArray, QBuffer, QIODevice
+from PyQt5.QtCore import QUrl, QSize, QRectF, QDate
 from openpyxl import Workbook
 from docx import Document
 from pptx import Presentation
@@ -1461,6 +1461,45 @@ class CuttingJobPreviewDialog(JobWorkPreviewDialog):
         super().__init__(parent, html_content)
         self.setWindowTitle("Cutting Job Slip Preview")
 
+    def get_print_content(self):
+        current_date = QDate.currentDate().toString("dd-MM-yyyy")
+
+        base_html = super().get_print_content()
+
+        date_row_html = f"""
+            <tr>
+                <td width="33%"><b>Current Date:</b> {current_date}</td>
+                <td colspan="2"></td> 
+            </tr>
+        </table>""" 
+        order_no = self._get_parent_text('order_number')
+        barcode = self._get_parent_text('barcode')
+        employee_name = self._get_parent_text('employee_name', 'N/A')
+        
+        new_header_table_html = f"""
+            <table class="header-table">
+                <tr>
+                    <td width="33%"><b>Order No:</b> {order_no}</td>
+                    <td width="33%"><b>Barcode:</b> {barcode}</td>
+                    <td width="34%"><b>Current Date:</b> {current_date}</td>
+                </tr>
+                <tr>
+                    <td width="33%"><b>Employee Name:</b> {employee_name}</td>
+                    <td colspan="2"></td> 
+                </tr>
+            </table>
+        """
+        new_html = re.sub(
+            r'<table class="header-table">.*?<\/table>', 
+            new_header_table_html, 
+            base_html, 
+            flags=re.DOTALL | re.IGNORECASE,
+            count=1 
+        )
+        new_html = new_html.replace("JOB WORK (STRETCHING) SLIP", "CUTTING JOB SLIP")
+        
+        return new_html
+
 class PrintingJobPreviewDialog(JobWorkPreviewDialog):
 
     def __init__(self, parent, content_data, **kwargs):
@@ -1476,7 +1515,7 @@ class PrintingJobPreviewDialog(JobWorkPreviewDialog):
     def get_print_content(self):
         order_no = self._get_parent_text('order_number')
         barcode = self._get_parent_text('barcode')
-        current_date = self._get_parent_text('order_date') # Reusing order_date for Current Date, or use QDate.currentDate().toString("dd-MM-yyyy")
+        current_date = self._get_parent_text('order_date')
         employee_name = self._get_parent_text('employee_name', 'N/A') 
         school_name = self._get_parent_text('school_name', 'N/A')
         remarks = self._get_parent_text('remark_input') 
