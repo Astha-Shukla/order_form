@@ -1117,7 +1117,7 @@ class QuotationPreviewDialog(QDialog, ExportShareMixin):
                 
                 # Cell 1 (always present)
                 cell1 = f"""
-                    <td style="width: 50%; padding: 5 15px; text-align: center; vertical-align: top; border: none;">
+                    <td style="width: 50%; padding: 5 25px; text-align: center; vertical-align: top; border: none;">
                         <img src="{uri1}" 
                             width="230"
                             height="250"
@@ -1131,7 +1131,7 @@ class QuotationPreviewDialog(QDialog, ExportShareMixin):
                 cell2 = ""
                 if uri2:
                     cell2 = f"""
-                        <td style="width: 50%; padding: 5 15px; text-align: center; vertical-align: top; border: none;">
+                        <td style="width: 50%; padding: 5 85px; text-align: center; vertical-align: top; border: none;">
                             <img src="{uri2}" 
                                 width="230"
                                 height="250"
@@ -1385,7 +1385,7 @@ class JobWorkPreviewDialog(QuotationPreviewDialog):
                 
                 # Cell 1 (always present)
                 cell1 = f"""
-                    <td style="width: 50%; padding: 5 15px; text-align: center; vertical-align: top; border: none;">
+                    <td style="width: 50%; padding: 5 25px; text-align: center; vertical-align: top; border: none;">
                         <img src="{uri1}" 
                             width="230"
                             height="250"
@@ -1399,7 +1399,7 @@ class JobWorkPreviewDialog(QuotationPreviewDialog):
                 cell2 = ""
                 if uri2:
                     cell2 = f"""
-                        <td style="width: 50%; padding: 5 15px; text-align: center; vertical-align: top; border: none;">
+                        <td style="width: 50%; padding: 5 85px; text-align: center; vertical-align: top; border: none;">
                             <img src="{uri2}" 
                                 width="230"
                                 height="250"
