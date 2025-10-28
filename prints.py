@@ -1522,12 +1522,6 @@ class CuttingJobPreviewDialog(JobWorkPreviewDialog):
 
         base_html = super().get_print_content()
 
-        date_row_html = f"""
-            <tr>
-                <td width="33%"><b>Current Date:</b> {current_date}</td>
-                <td colspan="2"></td> 
-            </tr>
-        </table>""" 
         order_no = self._get_parent_text('order_number')
         barcode = self._get_parent_text('barcode')
         employee_name = self._get_parent_text('employee_name', 'N/A')
@@ -1554,7 +1548,14 @@ class CuttingJobPreviewDialog(JobWorkPreviewDialog):
         )
         new_html = new_html.replace("JOB WORK (STRETCHING) SLIP", "CUTTING JOB SLIP")
         
-        return new_html
+        images_block_regex = r'<div\s+style="margin-top:\s*20px;.*?">.*?Customer Reference Images<\/h2>.*?<\/div>'
+        final_html = re.sub(
+            images_block_regex, 
+            '', # Replace with empty string
+            new_html, 
+            flags=re.DOTALL | re.IGNORECASE
+        )
+        return final_html
 
 class PrintingJobPreviewDialog(JobWorkPreviewDialog):
 
