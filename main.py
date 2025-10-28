@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
 
 from PyQt5.QtGui import QPixmap,QPainter, QPen, QColor
 from PyQt5.QtCore import Qt, QDate, QPointF,QByteArray, QBuffer, QIODevice, pyqtSignal
-from prints import PrintExportDialog, QuotationPreviewDialog, JobWorkPreviewDialog, CuttingJobPreviewDialog
+from prints import PrintExportDialog, QuotationPreviewDialog, JobWorkPreviewDialog, CuttingJobPreviewDialog, PrintingJobPreviewDialog
 
 MEDIA_ROOT = os.path.join(os.getcwd(), 'media')  # The main folder
 TEMPLATE_DIR = os.path.join(MEDIA_ROOT, 'templates') # For blank shirt images (ComboBox source)
@@ -342,6 +342,31 @@ class ItemInputDialog(QDialog):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Could not launch Cutting Dialog: {e}")
 
+    def _open_printing_dialog(self):
+        item_data = self.get_data() 
+
+        html_content = f"""
+        <table style="width:100%; border-collapse: collapse;" class="item-table">
+            <thead>
+                <tr>
+                    <th style="border: 1px solid #ddd;">Remark</th> 
+                    </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="border: 1px solid #ddd;">{item_data['Remark']}</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        try:
+            dialog = PrintingJobPreviewDialog(self.parent(), html_content) 
+            dialog.exec()
+        except NameError:
+            QMessageBox.critical(self, "Error", "PrintingJobPreviewDialog class not found. Check imports.")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Could not launch Printing Dialog: {e}")
+            
 class EmployeeDetailsDialog(QDialog):
     def __init__(self, item_type, current_data=None, parent=None):
         super().__init__(parent)
@@ -1448,7 +1473,7 @@ class OrderForm(QWidget):
         dialog.barcode_save_btn.clicked.connect(save_barcode_only_in_view)
         dialog.job_btn.clicked.connect(dialog._open_job_work_dialog)
         dialog.cut_btn.clicked.connect(dialog._open_cutting_dialog)
-        dialog.print_btn.clicked.connect(lambda: self._printing_action(row))
+        dialog.print_btn.clicked.connect(dialog._open_printing_dialog)
             
         self._set_dialog_read_only(dialog, is_read_only=True)
         
