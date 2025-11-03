@@ -49,24 +49,60 @@ class ImageGalleryWindow(QDialog):
 
         for filename in os.listdir(self.media_dir):
             if filename.lower().endswith(image_extensions):
-                image_path = os.path.join(self.media_dir, filename)
-                
+                image_path = os.path.join(self.media_dir, filename)                
+
                 label = QLabel()
                 pixmap = QPixmap(image_path)
+                if pixmap.isNull():
+                    continue
+
+                scaled_pixmap = pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                label.setPixmap(scaled_pixmap)
+                label.setAlignment(Qt.AlignCenter)
+                label.setToolTip(filename)
                 
-                if not pixmap.isNull():
-                    label.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-                    label.setAlignment(Qt.AlignCenter)
-                    label.setToolTip(filename)
-                    label.mousePressEvent = lambda event, path=image_path: self._image_clicked(path)
-                    label.setCursor(Qt.PointingHandCursor)
-                    
-                    self.gallery_layout.addWidget(label, row, col)
-                    
-                    col += 1
-                    if col >= col_count:
-                        col = 0
-                        row += 1
+                # Click event for selecting the image
+                label.mousePressEvent = lambda event, path=image_path: self._image_clicked(path)
+                label.setCursor(Qt.PointingHandCursor)
+                
+                # 2. Icon Bar Widget (The overlay)
+                icon_bar = QWidget()
+                icon_layout = QHBoxLayout(icon_bar)
+                icon_layout.setContentsMargins(0, 0, 5, 5) 
+                icon_layout.setSpacing(2)
+                
+                # 🗑️ Delete Button
+                delete_btn = QPushButton("🗑️")
+                delete_btn.setStyleSheet("background-color: rgba(255, 255, 255, 180); border: 1px solid #AAA; border-radius: 10px; font-size: 14px; padding: 0;") 
+                delete_btn.setFixedSize(30, 30) 
+                delete_btn.setToolTip(f"Delete {filename}")
+                delete_btn.clicked.connect(lambda checked, path=image_path: self._delete_image(path))
+                
+                # ⬇️ Download Button
+                download_btn = QPushButton("⬇️") 
+                download_btn.setStyleSheet("background-color: rgba(255, 255, 255, 180); border: 1px solid #AAA; border-radius: 10px; font-size: 14px; padding: 0;") 
+                download_btn.setFixedSize(30, 30) 
+                download_btn.setToolTip(f"Download {filename}")
+                download_btn.clicked.connect(lambda checked, path=image_path: self._download_image(path))
+
+                icon_layout.addStretch()
+                icon_layout.addWidget(download_btn)
+                icon_layout.addWidget(delete_btn)
+                
+                image_wrapper = QWidget() 
+                wrapper_layout = QGridLayout(image_wrapper)
+                wrapper_layout.setContentsMargins(0, 0, 0, 0)
+                wrapper_layout.setSpacing(0)
+                wrapper_layout.addWidget(label, 0, 0)                
+                wrapper_layout.addWidget(icon_bar, 0, 0, Qt.AlignTop | Qt.AlignRight) 
+                image_wrapper.setFixedSize(scaled_pixmap.width(), scaled_pixmap.height())
+                self.gallery_layout.addWidget(image_wrapper, row, col)
+                                
+                col += 1
+                if col >= col_count:
+                    col = 0
+                    row += 1
+
     def _image_clicked(self, path):
         absolute_path = os.path.abspath(path) 
     
