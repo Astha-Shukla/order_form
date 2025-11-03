@@ -1645,3 +1645,155 @@ class PrintingJobPreviewDialog(JobWorkPreviewDialog):
         </html>
         """
         return html_content
+    
+class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMixin is available
+    def __init__(self, parent, breakdown_data, **kwargs):
+        QDialog.__init__(self, parent, **kwargs)
+        self.setWindowTitle("RIB Collar Breakdown (A5)")
+        self.breakdown_data = breakdown_data
+        self.document_type = "RIB_COLLAR_BREAKDOWN"
+        self.setGeometry(250, 250, 300, 150) # Small dialog for print options
+
+        main_layout = QVBoxLayout(self)
+
+        # 🖨 Print/Preview Buttons
+        print_layout = QHBoxLayout()
+        direct_print_btn = QPushButton("🖨 Direct Print")
+        preview_btn = QPushButton("🔍 Print Preview")
+        
+        print_layout.addWidget(direct_print_btn)
+        print_layout.addWidget(preview_btn)
+        main_layout.addLayout(print_layout)
+
+        direct_print_btn.clicked.connect(self.direct_print)
+        preview_btn.clicked.connect(self.show_preview)
+        
+    def _get_parent_text(self, attribute_name, default="N/A"):
+        """Helper to safely retrieve text from a widget in the parent OrderForm."""
+        parent = self.parent()
+        if hasattr(parent, attribute_name) and getattr(parent, attribute_name):
+            widget = getattr(parent, attribute_name)
+            if hasattr(widget, 'text'):
+                return widget.text()
+            elif hasattr(widget, 'currentText'):
+                return widget.currentText()
+        return default
+
+    def _get_rib_collar_breakdown_content(self):
+        """Generates the A5 HTML content for the RIB Collar Size/Color breakdown."""
+        
+        breakdown = self.breakdown_data['breakdown']
+        colors = self.breakdown_data['colors']
+        all_sizes = ["12", "13", "14", "15", "16"] # Fixed set of collar sizes
+        
+        # 1. Calculate Grand Total Row
+        grand_total_row_html = '<tr style="background-color: #ffe0e0;"><td style="font-weight: bold;">TOTAL</td>'
+        
+        for color in colors:
+            total_for_color = sum(qty for (size, c), qty in breakdown.items() if c == color)
+            grand_total_row_html += f'<td style="font-weight: bold; text-align: right;">{total_for_color}</td>'
+        grand_total_row_html += '</tr>'
+        
+        # 2. Generate Data Rows
+        data_rows_html = ""
+        for size in all_sizes:
+            data_rows_html += f'<tr><td style="text-align: left; font-weight: bold;">{size}</td>'
+            for color in colors:
+                qty = breakdown.get((size, color), 0)
+                # Show empty string if quantity is zero
+                data_rows_html += f'<td style="text-align: right;">{qty if qty > 0 else ""}</td>' 
+            data_rows_html += '</tr>'
+            
+        # 3. Generate Header Row
+        header_row_html = '<tr style="background-color: #f0f8ff;"><th>COLLAR SIZE</th>'
+        for color in colors:
+            header_row_html += f'<th>{color.upper()}</th>'
+        header_row_html += '</tr>'
+        
+        # 4. Final Table HTML
+        table_html = f"""
+        <table class="collar-table">
+            <thead>{header_row_html}</thead>
+            <tbody>
+                {data_rows_html}
+                {grand_total_row_html}
+            </tbody>
+        </table>
+        """
+        
+        # Get order metadata
+        order_no = self._get_parent_text('order_number')
+        order_date = self._get_parent_text('order_date')
+        party_name = self._get_parent_text('party_name')
+        
+        # 5. Full A5 Document HTML
+        html_content = f"""
+        <html>
+        <head>
+            <style>
+                @page {{ 
+                    size: A5; 
+                    margin: 10mm; 
+                }} 
+                body {{ font-family: 'Arial', sans-serif; font-size: 10pt; line-height: 1.2; }}
+                .company-header {{ text-align: center; margin-bottom: 5px; }}
+                .company-header h2 {{ margin: 0; font-size: 14pt; color: #007bff; }}
+                .company-header p {{ margin: 2px 0; font-size: 8pt; color: #555; }}
+                .meta-data {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; }}
+                .meta-data td {{ padding: 2px 0; font-size: 10pt; }}
+                .collar-table {{ 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin-top: 10px; 
+                    table-layout: fixed; 
+                }}
+                .collar-table th, .collar-table td {{ 
+                    border: 1px solid #333; 
+                    padding: 5px 3px; 
+                    font-size: 9pt; 
+                }}
+                .collar-table th {{ text-align: center; font-weight: bold; }}
+                .collar-table td:first-child {{ font-weight: bold; padding-left: 5px;}}
+            </style>
+        </head>
+        <body>
+            <div class="company-header">
+                <h2>[YOUR COMPANY NAME HERE]</h2>
+                <p>[YOUR CONTACT INFO]</p>
+                <hr style="border: 0.5px solid #007bff; margin: 5px 0;">
+            </div>
+            
+            <table class="meta-data">
+                <tr>
+                    <td width="50%"><b>Order No:</b> {order_no}</td>
+                    <td width="50%" style="text-align: right;"><b>Date:</b> {order_date}</td>
+                </tr>
+            </table>            
+            {table_html}
+        </body>
+        </html>
+        """
+        return html_content
+
+    # --- Print Methods (Copied from your original code, simplified for clarity) ---
+    def print_document(self, printer):
+        doc = QTextDocument()
+        doc.setHtml(self._get_rib_collar_breakdown_content()) # Use the dedicated content method
+        doc.print_(printer)
+
+    def direct_print(self):
+        printer = QPrinter(QPrinter.HighResolution)
+        dialog = QPrintDialog(printer, self)
+        if dialog.exec_() == QDialog.Accepted:
+            self.print_document(printer)
+
+    def show_preview(self):
+        printer = QPrinter(QPrinter.HighResolution)
+        preview = QPrintPreviewDialog(printer, self)
+        preview.paintRequested.connect(self.print_document)
+
+        # Add export/share buttons if ExportShareMixin functionality is desired
+        # preview.layout().addWidget(QPushButton("🔽 Save Options")) 
+        # preview.layout().addWidget(QPushButton("📱 Share via WhatsApp"))
+
+        preview.exec_()

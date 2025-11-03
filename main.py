@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
 
 from PyQt5.QtGui import QPixmap,QPainter, QPen, QColor
 from PyQt5.QtCore import Qt, QDate, QPointF,QByteArray, QBuffer, QIODevice, pyqtSignal
-from prints import PrintExportDialog, QuotationPreviewDialog, JobWorkPreviewDialog, CuttingJobPreviewDialog, PrintingJobPreviewDialog
+from prints import PrintExportDialog, QuotationPreviewDialog, JobWorkPreviewDialog, CuttingJobPreviewDialog, PrintingJobPreviewDialog, RibCollarPrintDialog
 
 MEDIA_ROOT = os.path.join(os.getcwd(), 'media')  # The main folder
 TEMPLATE_DIR = os.path.join(MEDIA_ROOT, 'templates') # For blank shirt images (ComboBox source)
@@ -1842,6 +1842,63 @@ class OrderForm(QWidget):
                     continue
         return total_track_price
 
+    def _open_rib_collar_breakdown(self):
+        """
+        Gathers data for RIB Collar items and opens the dedicated 
+        RibCollarPrintDialog for the Size/Color breakdown (A5 format).
+        """
+        rib_collar_data = self._gather_rib_collar_data()
+        
+        if not rib_collar_data['breakdown']:
+            QMessageBox.information(self, "No RIB Collar Items", 
+                                    "No items marked as 'RIB Collar' were found in the order table.", 
+                                    QMessageBox.Ok)
+            return
+
+        # Use the dedicated dialog class
+        dialog = RibCollarPrintDialog(self, breakdown_data=rib_collar_data)
+        dialog.exec_()
+        
+    def _gather_rib_collar_data(self):
+        """
+        Scans the items_container table for RIB Collar items and aggregates Qty by (Size, Color).
+        (This is the same logic as before, ensuring we get the correct data from your table)
+        
+        NOTE: This assumes self.items_container is a QTableWidget with the following structure:
+        Col 2 = Color, Col 3 = Size, Col 4 = Qty, Col 16 = Rib Collar Employee Name (used as flag)
+        """
+        breakdown = {} # Key: (Size, Color), Value: Total Qty
+        unique_colors = set()
+        total_qty = 0
+        
+        # Assuming self.items_container exists and is populated
+        if not hasattr(self, 'items_container'):
+            return {'breakdown': {}, 'colors': [], 'total_qty': 0}
+
+        for row in range(self.items_container.rowCount()):
+            type_item = self.items_container.item(row, 1) # Type is in column 1 (T-shirt)
+            
+            # We only care about T-shirts for a collar breakdown
+            if type_item and "t-shirt" in type_item.text().lower(): 
+                
+                try:
+                    size = self.items_container.item(row, 3).text()
+                    qty = int(self.items_container.item(row, 4).text())
+                    color = self.items_container.item(row, 2).text().strip()
+                except (AttributeError, ValueError):
+                    continue
+
+                key = (size, color)
+                breakdown[key] = breakdown.get(key, 0) + qty
+                unique_colors.add(color)
+                total_qty += qty
+
+        return {
+            'breakdown': breakdown,
+            'colors': sorted(list(unique_colors)),
+            'total_qty': total_qty
+        }
+
     def _calculate_item_total_price(self, unit_price, qty, printing_add_on_per_unit, collar_add_on_per_unit):        
         printing_add_on_per_unit = self.get_total_printing_price()
         collar_add_on_per_unit = self.get_selected_collar_price()       
@@ -2041,7 +2098,8 @@ class OrderForm(QWidget):
 
         #Connect Buttons to functions
         self.quotatation_btn.clicked.connect(self.show_quotation_preview)
-       
+        self.rib_btn.clicked.connect(self._open_rib_collar_breakdown)
+
         buttons = [
             self.save_btn,self.undo_btn, self.quotatation_btn, self.bill_btn, self.rib_btn,
             #self.job_btn, self.rib_btn, self.cut_btn, self.print_btn
