@@ -1789,6 +1789,22 @@ class OrderForm(QWidget):
         self.items_container.setItem(row, 16, QTableWidgetItem(data["RIB Collar Employee Name"]))
         self.items_container.setItem(row, 17, QTableWidgetItem(data["Stretching Employee Name"]))
 
+        collar_type_flag = "NONE" 
+    
+        if is_shirt_item: # Only check radio buttons if it's a shirt item
+            # Note: self.rb_rib, self.rb_patti, self.rb_self are QCheckBoxes in your code
+            if hasattr(self, 'rb_rib') and self.rb_rib.isChecked(): 
+                collar_type_flag = "RIB"
+            elif hasattr(self, 'rb_patti') and self.rb_patti.isChecked():
+                collar_type_flag = "PATTI"
+            elif hasattr(self, 'rb_self') and self.rb_self.isChecked():
+                collar_type_flag = "SELF"
+                
+        # Save the collar type flag in Column 18 (index 18)
+        self.items_container.setItem(row, 18, QTableWidgetItem(collar_type_flag))
+        if self.items_container.columnCount() < 19:
+            self.items_container.setColumnCount(19)
+
         self.items_container.setColumnHidden(9, True)
         self.items_container.setColumnHidden(10, True)
         self.items_container.setColumnHidden(11, True) 
@@ -1798,6 +1814,7 @@ class OrderForm(QWidget):
         self.items_container.setColumnHidden(15, True) # Printing
         self.items_container.setColumnHidden(16, True) # Collar
         self.items_container.setColumnHidden(17, True) # Stretching
+        self.items_container.setColumnHidden(18, True) # NEW Collar Type Flag
         self._update_grand_total()
 
     def get_total_printing_price(self):
@@ -1860,14 +1877,7 @@ class OrderForm(QWidget):
         dialog.exec_()
         
     def _gather_rib_collar_data(self):
-        """
-        Scans the items_container table for RIB Collar items and aggregates Qty by (Size, Color).
-        (This is the same logic as before, ensuring we get the correct data from your table)
-        
-        NOTE: This assumes self.items_container is a QTableWidget with the following structure:
-        Col 2 = Color, Col 3 = Size, Col 4 = Qty, Col 16 = Rib Collar Employee Name (used as flag)
-        """
-        breakdown = {} # Key: (Size, Color), Value: Total Qty
+        breakdown = {} 
         unique_colors = set()
         total_qty = 0
         
@@ -1877,15 +1887,16 @@ class OrderForm(QWidget):
 
         for row in range(self.items_container.rowCount()):
             type_item = self.items_container.item(row, 1) # Type is in column 1 (T-shirt)
-            
+            collar_type_flag_item = self.items_container.item(row, 18)
             # We only care about T-shirts for a collar breakdown
-            if type_item and "t-shirt" in type_item.text().lower(): 
+            if (type_item and "t-shirt" in type_item.text().lower() and 
+                collar_type_flag_item and collar_type_flag_item.text().upper() == "RIB"):
                 
                 try:
                     size = self.items_container.item(row, 3).text()
                     qty = int(self.items_container.item(row, 4).text())
                     color = self.items_container.item(row, 2).text().strip()
-                except (AttributeError, ValueError):
+                except (AttributeError, ValueError, TypeError):
                     continue
 
                 key = (size, color)
@@ -1893,6 +1904,10 @@ class OrderForm(QWidget):
                 unique_colors.add(color)
                 total_qty += qty
 
+        if not breakdown:
+            # This will show the error message if no items pass the filter
+            return {'breakdown': {}, 'colors': [], 'total_qty': 0}
+        
         return {
             'breakdown': breakdown,
             'colors': sorted(list(unique_colors)),
