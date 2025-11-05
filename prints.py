@@ -1679,38 +1679,49 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
                 return widget.currentText()
         return default
 
-    def _get_rib_collar_breakdown_content(self):
-        """Generates the A5 HTML content for the RIB Collar Size/Color breakdown."""
-        
+    def _get_rib_collar_breakdown_content(self):        
         breakdown = self.breakdown_data['breakdown']
         colors = self.breakdown_data['colors']
-        all_sizes = ["12", "13", "14", "15", "16"] # Fixed set of collar sizes
+        all_sizes = ["12", "13", "14", "15", "16"]
         
-        # 1. Calculate Grand Total Row
-        grand_total_row_html = '<tr style="background-color: #ffe0e0;"><td style="font-weight: bold;">TOTAL</td>'
+        num_color_cols = len(colors)
         
+        spacer = "&nbsp;" * 35 
+        
+        # Determine the first data size ('12') to target for spacer injection.
+        first_size = all_sizes[0]
+        
+        # 2. Calculate Grand Total Row
+        grand_total_row_html = '<tr style="background-color: #ffe0e0;"><td style="font-weight: bold; text-align: center;">TOTAL</td>'
         for color in colors:
             total_for_color = sum(qty for (size, c), qty in breakdown.items() if c == color)
             grand_total_row_html += f'<td style="font-weight: bold; text-align: right;">{total_for_color}</td>'
         grand_total_row_html += '</tr>'
         
-        # 2. Generate Data Rows
+        # 3. Generate Data Rows (CRITICAL FIX APPLIED HERE)
         data_rows_html = ""
         for size in all_sizes:
-            data_rows_html += f'<tr><td style="text-align: left; font-weight: bold;">{size}</td>'
+            data_rows_html += f'<tr><td style="text-align: center; font-weight: bold;">{size}</td>'
             for color in colors:
                 qty = breakdown.get((size, color), 0)
-                # Show empty string if quantity is zero
-                data_rows_html += f'<td style="text-align: right;">{qty if qty > 0 else ""}</td>' 
+                
+                cell_content = str(qty) if qty > 0 else ""
+                
+                if size == first_size and qty == 0:
+                    cell_content += spacer
+                elif size == first_size and len(cell_content) < 2:
+                    cell_content += "&nbsp;" * 5
+                    
+                data_rows_html += f'<td style="text-align: right;">{cell_content}</td>' 
             data_rows_html += '</tr>'
             
-        # 3. Generate Header Row
-        header_row_html = '<tr style="background-color: #f0f8ff;"><th>COLLAR SIZE</th>'
+        # 4. Generate Header Row 
+        header_row_html = '<tr style="background-color: #f0f8ff;"><th style="width: 20%; text-align: center;">COLLAR SIZE</th>'
         for color in colors:
-            header_row_html += f'<th>{color.upper()}</th>'
+            header_row_html += f'<th style="text-align: center;">{color.upper()}</th>'
         header_row_html += '</tr>'
         
-        # 4. Final Table HTML
+        # 5. Final Table HTML
         table_html = f"""
         <table class="collar-table">
             <thead>{header_row_html}</thead>
@@ -1724,9 +1735,8 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
         # Get order metadata
         order_no = self._get_parent_text('order_number')
         order_date = self._get_parent_text('order_date')
-        party_name = self._get_parent_text('party_name')
         
-        # 5. Full A5 Document HTML
+        # 6. Full A5 Document HTML with Aggressive CSS Fixes
         html_content = f"""
         <html>
         <head>
@@ -1741,24 +1751,18 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
                 .company-header p {{ margin: 2px 0; font-size: 8pt; color: #555; }}
                 .meta-data {{ width: 100%; border-collapse: collapse; margin-bottom: 10px; }}
                 .meta-data td {{ padding: 2px 0; font-size: 10pt; }}
-                .collar-table {{ 
-                    width: 100%; 
-                    border-collapse: collapse; 
-                    margin-top: 10px; 
-                    table-layout: fixed; 
-                }}
-                .collar-table th, .collar-table td {{ 
-                    border: 1px solid #333; 
-                    padding: 5px 3px; 
-                    font-size: 9pt; 
-                }}
-                .collar-table th {{ text-align: center; font-weight: bold; }}
-                .collar-table td:first-child {{ font-weight: bold; padding-left: 5px;}}
+                .collar-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }}
+                
+                .collar-table th, .collar-table td {{ border-top: 1px solid #333; border-bottom: 1px solid #333; border-left: 1px solid #333; 
+                border-right: 1px solid #333; padding: 5px 3px; font-size: 9pt; width: auto !important; }}
+                
+                .collar-table th {{ font-weight: bold; text-align: center; }}
+                .collar-table td:first-child {{ font-weight: bold; text-align: center;}}
             </style>
         </head>
         <body>
             <div class="company-header">
-                <h2>[YOUR COMPANY NAME HERE]</h2>
+                <h2 style="color: #0000ff;">[YOUR COMPANY NAME HERE]</h2>
                 <p>[YOUR CONTACT INFO]</p>
                 <hr style="border: 0.5px solid #007bff; margin: 5px 0;">
             </div>
@@ -1768,7 +1772,7 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
                     <td width="50%"><b>Order No:</b> {order_no}</td>
                     <td width="50%" style="text-align: right;"><b>Date:</b> {order_date}</td>
                 </tr>
-            </table>            
+            </table>            
             {table_html}
         </body>
         </html>
