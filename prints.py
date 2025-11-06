@@ -4,6 +4,7 @@ import webbrowser
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QFileDialog, QMenu, QApplication)
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
 from PyQt5.QtGui import QTextDocument, QCursor, QPixmap, QPainter
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtCore import QUrl, QSize, QRectF, QDate
 from openpyxl import Workbook
 from docx import Document
@@ -1683,45 +1684,38 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
         breakdown = self.breakdown_data['breakdown']
         colors = self.breakdown_data['colors']
         all_sizes = ["12", "13", "14", "15", "16"]
-        
-        num_color_cols = len(colors)
-        
+                
         spacer = "&nbsp;" * 35 
-        
-        # Determine the first data size ('12') to target for spacer injection.
         first_size = all_sizes[0]
         
         # 2. Calculate Grand Total Row
         grand_total_row_html = '<tr style="background-color: #ffe0e0;"><td style="font-weight: bold; text-align: center;">TOTAL</td>'
         for color in colors:
             total_for_color = sum(qty for (size, c), qty in breakdown.items() if c == color)
-            grand_total_row_html += f'<td style="font-weight: bold; text-align: right;">{total_for_color}</td>'
+            grand_total_row_html += f'<td style="font-weight: bold; text-align: center;">{total_for_color}</td>'
         grand_total_row_html += '</tr>'
         
-        # 3. Generate Data Rows (CRITICAL FIX APPLIED HERE)
+        # --- Data Rows ---
         data_rows_html = ""
         for size in all_sizes:
             data_rows_html += f'<tr><td style="text-align: center; font-weight: bold;">{size}</td>'
             for color in colors:
                 qty = breakdown.get((size, color), 0)
-                
                 cell_content = str(qty) if qty > 0 else ""
-                
                 if size == first_size and qty == 0:
                     cell_content += spacer
                 elif size == first_size and len(cell_content) < 2:
                     cell_content += "&nbsp;" * 5
-                    
                 data_rows_html += f'<td style="text-align: right;">{cell_content}</td>' 
             data_rows_html += '</tr>'
             
-        # 4. Generate Header Row 
+        # --- Header Row ---
         header_row_html = '<tr style="background-color: #f0f8ff;"><th style="width: 20%; text-align: center;">COLLAR SIZE</th>'
         for color in colors:
             header_row_html += f'<th style="text-align: center;">{color.upper()}</th>'
         header_row_html += '</tr>'
         
-        # 5. Final Table HTML
+        # --- Table HTML ---
         table_html = f"""
         <table class="collar-table">
             <thead>{header_row_html}</thead>
@@ -1732,7 +1726,7 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
         </table>
         """
         
-        # Get order metadata
+        # --- Metadata ---
         order_no = self._get_parent_text('order_number')
         order_date = self._get_parent_text('order_date')
         
@@ -1753,10 +1747,14 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
                 .meta-data td {{ padding: 2px 0; font-size: 10pt; }}
                 .collar-table {{ width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; }}
                 
-                .collar-table th, .collar-table td {{ border-top: 1px solid #333; border-bottom: 1px solid #333; border-left: 1px solid #333; 
-                border-right: 1px solid #333; padding: 5px 3px; font-size: 9pt; width: auto !important; }}
-                
-                .collar-table th {{ font-weight: bold; text-align: center; }}
+                .collar-table th, .collar-table td {{
+                    border: 1px solid #333;
+                    padding: 6px 5px;
+                    font-size: 9pt;
+                    word-wrap: break-word;
+                    text-align: center;
+                }}                
+                .collar-table th {{ font-weight: bold; background-color: #f0f8ff; text-align: center; }}
                 .collar-table td:first-child {{ font-weight: bold; text-align: center;}}
             </style>
         </head>
@@ -1792,12 +1790,30 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
             self.print_document(printer)
 
     def show_preview(self):
+        html = self._get_rib_collar_breakdown_content()
+
+        self.preview_dialog = QDialog(self)
+        self.preview_dialog.setWindowTitle("Quotation / Breakdown Preview")
+        self.preview_dialog.resize(800, 600)
+        layout = QVBoxLayout(self.preview_dialog)
+        # WebEngine view for proper HTML rendering
+        self.web_view = QWebEngineView()
+        self.web_view.setHtml(html)
+        # Buttons for export/print
+        btn_export_pdf = QPushButton("📄 Export as PDF")
+        btn_export_pdf.clicked.connect(self.export_pdf)
+        layout.addWidget(self.web_view)
+        layout.addWidget(btn_export_pdf)
+        self.preview_dialog.exec_()
+
+
+    def export_pdf(self):
+        file_path, _ = QFileDialog.getSaveFileName(self, "Save PDF", "", "PDF Files (*.pdf)")
+        if not file_path:
+            return
         printer = QPrinter(QPrinter.HighResolution)
-        preview = QPrintPreviewDialog(printer, self)
-        preview.paintRequested.connect(self.print_document)
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setOutputFileName(file_path)
 
-        # Add export/share buttons if ExportShareMixin functionality is desired
-        # preview.layout().addWidget(QPushButton("🔽 Save Options")) 
-        # preview.layout().addWidget(QPushButton("📱 Share via WhatsApp"))
-
-        preview.exec_()
+        # QWebEngineView prints exactly as shown on screen
+        self.web_view.page().print(printer, lambda success: None)
