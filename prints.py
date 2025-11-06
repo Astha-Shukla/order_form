@@ -1680,6 +1680,11 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
                 return widget.currentText()
         return default
 
+    @property
+    def content_data(self):
+        import json
+        return json.dumps(self.breakdown_data, indent=2)
+    
     def _get_rib_collar_breakdown_content(self):        
         breakdown = self.breakdown_data['breakdown']
         colors = self.breakdown_data['colors']
@@ -1777,10 +1782,12 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
         """
         return html_content
 
-    # --- Print Methods (Copied from your original code, simplified for clarity) ---
+    def get_print_content(self):
+        return self._get_rib_collar_breakdown_content()
+    
     def print_document(self, printer):
         doc = QTextDocument()
-        doc.setHtml(self._get_rib_collar_breakdown_content()) # Use the dedicated content method
+        doc.setHtml(self._get_rib_collar_breakdown_content())
         doc.print_(printer)
 
     def direct_print(self):
@@ -1796,24 +1803,21 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
         self.preview_dialog.setWindowTitle("Quotation / Breakdown Preview")
         self.preview_dialog.resize(800, 600)
         layout = QVBoxLayout(self.preview_dialog)
-        # WebEngine view for proper HTML rendering
+
         self.web_view = QWebEngineView()
         self.web_view.setHtml(html)
-        # Buttons for export/print
-        btn_export_pdf = QPushButton("📄 Export as PDF")
-        btn_export_pdf.clicked.connect(self.export_pdf)
         layout.addWidget(self.web_view)
-        layout.addWidget(btn_export_pdf)
+
+        btn_container = QHBoxLayout()
+        export_btn = QPushButton("🔽 Save Options")
+        export_btn.setToolTip("Save to PDF/Excel/Image/Word/PPT")
+        export_btn.clicked.connect(self.show_export_menu)
+        btn_container.addWidget(export_btn) 
+
+        share_btn = QPushButton("📱 Share via WhatsApp")
+        share_btn.setToolTip("Share Order as PDF via WhatsApp")
+        share_btn.clicked.connect(self.show_whatsapp_share_menu)
+        btn_container.layout().addWidget(share_btn)
+
+        layout.addLayout(btn_container)
         self.preview_dialog.exec_()
-
-
-    def export_pdf(self):
-        file_path, _ = QFileDialog.getSaveFileName(self, "Save PDF", "", "PDF Files (*.pdf)")
-        if not file_path:
-            return
-        printer = QPrinter(QPrinter.HighResolution)
-        printer.setOutputFormat(QPrinter.PdfFormat)
-        printer.setOutputFileName(file_path)
-
-        # QWebEngineView prints exactly as shown on screen
-        self.web_view.page().print(printer, lambda success: None)
