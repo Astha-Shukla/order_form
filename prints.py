@@ -1648,10 +1648,11 @@ class PrintingJobPreviewDialog(JobWorkPreviewDialog):
         return html_content
     
 class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMixin is available
-    def __init__(self, parent, breakdown_data, **kwargs):
+    def __init__(self, parent, breakdown_data, collar_name="N/A", **kwargs):
         QDialog.__init__(self, parent, **kwargs)
         self.setWindowTitle("RIB Collar Breakdown (A5)")
         self.breakdown_data = breakdown_data
+        self.collar_name = collar_name
         self.document_type = "RIB_COLLAR_BREAKDOWN"
         self.setGeometry(250, 250, 300, 150) # Small dialog for print options
 
@@ -1734,6 +1735,7 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
         # --- Metadata ---
         order_no = self._get_parent_text('order_number')
         order_date = self._get_parent_text('order_date')
+        collar_name = self.collar_name
         
         # 6. Full A5 Document HTML with Aggressive CSS Fixes
         html_content = f"""
@@ -1774,6 +1776,9 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
                 <tr>
                     <td width="50%"><b>Order No:</b> {order_no}</td>
                     <td width="50%" style="text-align: right;"><b>Date:</b> {order_date}</td>
+                </tr>
+                <tr>
+                    <td colspan="2"><b>Collar Name:</b> {collar_name}</td>
                 </tr>
             </table>            
             {table_html}

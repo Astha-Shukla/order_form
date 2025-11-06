@@ -1859,11 +1859,21 @@ class OrderForm(QWidget):
                     continue
         return total_track_price
 
+    def _get_collar_name(self):
+        if hasattr(self, 'entries') and 'collar' in self.entries:
+            collar_proxy = self.entries['collar']
+            
+            collar_widget = collar_proxy.widget() 
+            
+            if collar_widget and hasattr(collar_widget, 'text'):
+                text = collar_widget.text().strip()
+                if text:
+                    return text
+                return ""
+            
+        return "N/A"
+
     def _open_rib_collar_breakdown(self):
-        """
-        Gathers data for RIB Collar items and opens the dedicated 
-        RibCollarPrintDialog for the Size/Color breakdown (A5 format).
-        """
         rib_collar_data = self._gather_rib_collar_data()
         
         if not rib_collar_data['breakdown']:
@@ -1871,9 +1881,8 @@ class OrderForm(QWidget):
                                     "No items marked as 'RIB Collar' were found in the order table.", 
                                     QMessageBox.Ok)
             return
-
-        # Use the dedicated dialog class
-        dialog = RibCollarPrintDialog(self, breakdown_data=rib_collar_data)
+        collar_name = self._get_collar_name()
+        dialog = RibCollarPrintDialog(self, breakdown_data=rib_collar_data, collar_name=collar_name)
         dialog.exec_()
         
     def _gather_rib_collar_data(self):
