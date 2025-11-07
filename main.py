@@ -496,6 +496,7 @@ class OrderForm(QWidget):
         self._tax_percentage = 0.0
         self._tax_amount = 0.0
         self._grand_total = 0.0
+        self.item_collar_flags = []
 
         # 🔹 Main vertical layout
         self.main_layout = QVBoxLayout(self)
@@ -1791,8 +1792,8 @@ class OrderForm(QWidget):
 
         collar_type_flag = "NONE" 
     
-        if is_shirt_item: # Only check radio buttons if it's a shirt item
-            # Note: self.rb_rib, self.rb_patti, self.rb_self are QCheckBoxes in your code
+        if is_shirt_item: 
+            
             if hasattr(self, 'rb_rib') and self.rb_rib.isChecked(): 
                 collar_type_flag = "RIB"
             elif hasattr(self, 'rb_patti') and self.rb_patti.isChecked():
@@ -1802,6 +1803,13 @@ class OrderForm(QWidget):
                 
         # Save the collar type flag in Column 18 (index 18)
         self.items_container.setItem(row, 18, QTableWidgetItem(collar_type_flag))
+        
+        if len(self.item_collar_flags) <= row:
+            self.item_collar_flags.append(collar_type_flag)
+        else:
+            # यह केवल edit/replace के लिए होगा, लेकिन हम इसे सुरक्षित रूप से यहाँ सेट करते हैं
+            self.item_collar_flags[row] = collar_type_flag
+
         if self.items_container.columnCount() < 19:
             self.items_container.setColumnCount(19)
 
@@ -1895,11 +1903,13 @@ class OrderForm(QWidget):
             return {'breakdown': {}, 'colors': [], 'total_qty': 0}
 
         for row in range(self.items_container.rowCount()):
+            collar_type_text = self.item_collar_flags[row].upper() if row < len(self.item_collar_flags) else ""
+            
             type_item = self.items_container.item(row, 1) # Type is in column 1 (T-shirt)
-            collar_type_flag_item = self.items_container.item(row, 18)
-            # We only care about T-shirts for a collar breakdown
+            #collar_type_flag_item = self.items_container.item(row, 18)
+            
             if (type_item and "t-shirt" in type_item.text().lower() and 
-                collar_type_flag_item and collar_type_flag_item.text().upper() == "RIB"):
+                collar_type_text == "RIB"):
                 
                 try:
                     size = self.items_container.item(row, 3).text()
