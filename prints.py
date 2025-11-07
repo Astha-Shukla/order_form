@@ -1805,7 +1805,7 @@ class RibCollarPrintDialog(QDialog, ExportShareMixin): # Assuming ExportShareMix
         html = self._get_rib_collar_breakdown_content()
 
         self.preview_dialog = QDialog(self)
-        self.preview_dialog.setWindowTitle("Quotation / Breakdown Preview")
+        self.preview_dialog.setWindowTitle("RIB Collar Preview")
         self.preview_dialog.resize(800, 600)
         layout = QVBoxLayout(self.preview_dialog)
 
